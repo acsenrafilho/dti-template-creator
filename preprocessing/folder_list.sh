@@ -1,51 +1,22 @@
 #!/bin/bash
+#Script to list all the folders that will be used to build the brain template
 
-usage ()
-{
-  echo "Usage : $0 <DICOM folder path> "
-  echo "-h    Help"
-  exit
-}
+FOLDER_PATH=$1
+FOLDERS=`ls $1`
 
-Help ()
-{
-  clear
-  echo "Help passage"
-  exit
-}
-
-#Check before start the procedure
-if [[ $# -eq 0 ]]; then
-  echo "Folder path is missing!. Please type a full path which have the DICOM image files."
-  usage
-  exit
+if [[ -d "$FOLDER_PATH/log" ]]; then
+    rm -R $FOLDER_PATH/log
+    mkdir $FOLDER_PATH/log
 fi
+mkdir $FOLDER_PATH/log
 
-# while [[ $1 != "" ]]; do
-#   case $1 in
-#     -h ) Help
-#       ;;
-#   esac
-# done
-
-echo "*** Starting script: $0 $1"
-folder_path=$1
-cd $folder_path
-mkdir log
-#TODO: Check is the folder is empty
-# if [[ "$(ls -A $folder_path)" -eq "" ]]; then
-#   echo "The folder in path $1 is empty"
-#   exit
-# fi
-
-echo "---> Folder listing names"
-#Create e log with the names of the folder contained inside the given path
-
-ls $pwd | sort > log/folders_localized.log
-folders_names=`cat log/folders_localized.log`
-
-for name in $folders_names; do
-  if [[ $name != "log" ]]; then
-      echo $name
+#Showing the folders name
+echo "Folders used to the template:"
+for f in $FOLDERS; do
+  if [[ "$f" != "log" ]]; then
+    echo $f
+    echo $f >> $FOLDER_PATH/log/DICOM_folders.log
   fi
 done
+
+echo "=== List of folder saved in log/DICOM_folders.log ==="
