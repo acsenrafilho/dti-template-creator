@@ -4,6 +4,8 @@
 if [[ "`which dcm2nii`" == "" ]]; then
   echo "dcm2nii program is missing!"
   echo "Please, previously intall dcm2nii in order to use templateCreator"
+  echo ""
+  echo "  More information in the website: http://www.mccauslandcenter.sc.edu/mricro/mricron/dcm2nii.html"
   exit
 fi
 
