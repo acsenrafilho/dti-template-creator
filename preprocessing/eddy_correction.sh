@@ -25,10 +25,19 @@ if [[ $HIGH_PERF == "Y" ]]; then
   #Read variables form config file
   ACQ_PE=`cat config/config_var.conf | grep ACQ_PE | cut -c8-10`
 
+  # Number of volumes
+  NUM_VOL=`fslnvols $NII_FOLDER/${ACQ}_dti.nii.gz`
   case $ACQ_PE in
     "+Y" )
       echo "      --> Creating acquisition file: +Y PE"
-      echo "0 1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      for (( i = 0; i < 10; i++ )); do
+        echo "0 1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
+      # indx=""
+      # for (( i = 1; i <= $NUM_VOL; i++ )); do
+      #   indx="$indx 0 1 0 0.075\n"
+      # done
+      # echo $indx > $NII_FOLDER/tmp_${ACQ}_acqparam.txt
       ;;
     "-Y" )
       echo "      --> Creating acquisition file: -Y PE"
@@ -38,9 +47,6 @@ if [[ $HIGH_PERF == "Y" ]]; then
   ACQ_PARAM="$NII_FOLDER/tmp_${ACQ}_acqparam.txt"
 
   # Preparing the INDEX file:
-  # Number of volumes
-  NUM_VOL=`fslnvols $NII_FOLDER/${ACQ}_dti.nii.gz`
-
   indx=""
   for (( i = 1; i <= $NUM_VOL; i++ )); do
     indx="$indx 1"
@@ -50,10 +56,10 @@ if [[ $HIGH_PERF == "Y" ]]; then
   INDEX="$NII_FOLDER/tmp_eddy_index.txt"
 
   # Running FSL-EDDY
-  # eddy --imain ... TODO CHAMAR O EDDY DE FORMA CORRETA...VER COMO EH FEITO ACQPARAM E INDEX FILES...!!!!!!!!
-
+  echo "      --> Running EDDY..."
+  eddy --imain=$NII_FOLDER/${ACQ}_dti.nii.gz --mask=$NII_FOLDER/${ACQ}_brain_mask.nii.gz --index=$NII_FOLDER/tmp_eddy_index.txt --acqp=$NII_FOLDER/tmp_${ACQ}_acqparam.txt --bvecs=$NII_FOLDER/${ACQ}.bvec --bvals=$NII_FOLDER/${ACQ}.bval --out=$NII_FOLDER/${ACQ}_eddy.nii.gz
   # Removing unnecessary files
-  rm $NII_FOLDER/tmp*
+  rm $NII_FOLDER/tmp* $NII_FOLDER/*.eddy_* $NII_FOLDER/*_brain_mask.nii.gz
 
 else
   echo "  --> Using FDT-eddy_correct"
@@ -74,5 +80,5 @@ else
   eddy_correct $NII_FOLDER/${ACQ}_dti.nii.gz $NII_FOLDER/${ACQ}_eddy.nii.gz $idx
 
   # Removing ecclog from eddy_correct pipeline
-  rm $NII_FOLDER/*.ecclog
+  rm $NII_FOLDER/*.ecclog $NII_FOLDER/*_brain_mask.nii.gz
 fi

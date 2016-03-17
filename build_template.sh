@@ -35,16 +35,16 @@ for subj in `ls $1 | grep "subj*"`; do
 
   # Apply dcm2nii to create the nii files from the DICOM FOLDERS
   # Starting to select each subject to do all the process.
-  source preprocessing/dcm2nii.sh $1 $subj
+  # source preprocessing/dcm2nii.sh $1 $subj
 
   # nii folder has all the images to process
   NII_FOLDER=$1/$subj/nii
 
   # Split the pre processing procedures to each acquisition per time. Less consumption of time per volume.
   for acq in `ls $NII_FOLDER | grep .nii.gz | cut -c1-11`; do
-    echo "Step 2: Pre processing DWIs volumes - Folder: ``${acq} | cut -c3-11"
-    # Show the parameters choosen: Reference image, BET (threshold f), registration (flirt -> DOF (affine, 6 dof, 3 dof), fnirt (warpsize, fhwmin, fwhmref, subsamp, ))
-    # Read conf file with the variables values. TODO Test EDDY scroipts!!!!!!!!!!
+    echo "Step 2: Pre processing DWIs volumes: Brain extraction and eddy correction - Folder: `echo ${acq} | cut -c3-11`"
+    # Show the parameters choosen: registration (flirt -> DOF (affine, 6 dof, 3 dof), fnirt (warpsize, fhwmin, fwhmref, subsamp, ))
+    # Read conf file with the variables values.
     echo "  --> Creating brain mask..."
     BET_THR=`cat config/config_var.conf | grep BET_THR | cut -c9-12`
     NECK_RM=`cat config/config_var.conf | grep NECK_RM | cut -c9-10`
@@ -52,8 +52,25 @@ for subj in `ls $1 | grep "subj*"`; do
 
     echo "  --> Eddy current correction procedure..."
     HIGH_PERF=`cat config/config_var.conf | grep HIGH_PERF | cut -c11-12`
-    source preprocessing/eddy_correction.sh  $NII_FOLDER $acq $HIGH_PERF
+    # source preprocessing/eddy_correction.sh  $NII_FOLDER $acq $HIGH_PERF
   done
+
+    echo "Step 3: Registration procedure:"
+    echo "  --> Intrasubject registration"
+    DOF=`cat config/config_var.conf | grep DOF | cut -c5-6`
+    source preprocessing/reg_intrasubj.sh $NII_FOLDER $DOF
+
+
+
+
+
+
+
+
+
+
+  # Extracting first 3D volume to be referenced
+    # echo "Step 3: Registration procedure: Initial linear approximation"
   #   echo "  --> Extracting b0 volume..."
   #   # fslroi resolve this
   #
@@ -62,7 +79,7 @@ for subj in `ls $1 | grep "subj*"`; do
   # source postprocessing/mean_dti.sh $NII_FOLDER
 
 
-#   echo "Step 3: Registration procedure: Initial linear approximation"
+
 #   echo "  --> Non-diffusion volume (B0)"
 #   # Initialize registration process from b0 volume
 #   #   ->Use FLIRT initially.
