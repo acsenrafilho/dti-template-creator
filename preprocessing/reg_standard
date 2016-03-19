@@ -1,0 +1,5 @@
+#!/bin/bash
+# Script to register the mean dti with the standard space (MNI 2mm)
+
+NII_FOLDER=$1
+MNI=$2
