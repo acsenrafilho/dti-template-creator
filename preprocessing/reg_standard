@@ -2,4 +2,63 @@
 # Script to register the mean dti with the standard space (MNI 2mm)
 
 NII_FOLDER=$1
+MEAN_DTI=`ls $NII_FOLDER | grep _corr_mean.nii.gz`
 MNI=$2
+BET_THR=$3
+WARP=$4
+INFWHM=$5
+REFFWHM=$6
+SUBSAMP=$7
+
+if [[ "`ls $FSLDIR/data/standard`" == "" ]]; then
+  echo "  ERROR: FSL standard templates folder does not exist."
+  echo "  Please check if the FSL was completely installed."
+  echo "    ...exiting the standard template normalization step..."
+  exit
+fi
+
+# Copy the MNI template
+if [[ "$MNI" == "MNI152lin_2mm" ]]; then
+  cp $FSLDIR/data/standard/MNI152lin_T1_2mm_brain.nii.gz $NII_FOLDER/
+  mv $NII_FOLDER/MNI152lin_T1_2mm_brain.nii.gz $NII_FOLDER/tmp_MNItemplate.nii.gz
+elif [[ "$MNI" == "MNI152_2mm" ]]; then
+  cp $FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz $NII_FOLDER/
+  mv $NII_FOLDER/MNI152_T1_2mm_brain.nii.gz $NII_FOLDER/tmp_MNItemplate.nii.gz
+elif [[ "$MNI" == "MNI152lin_1mm" ]]; then
+  cp $FSLDIR/data/standard/MNI152lin_T1_1mm_brain.nii.gz $NII_FOLDER/
+  mv $NII_FOLDER/MNI152lin_T1_1mm_brain.nii.gz $NII_FOLDER/tmp_MNItemplate.nii.gz
+elif [[ "$MNI" == "MNI152_1mm" ]]; then
+  cp $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz $NII_FOLDER/
+  mv $NII_FOLDER/MNI152_T1_1mm_brain.nii.gz $NII_FOLDER/tmp_MNItemplate.nii.gz
+fi
+
+  NUM_VOLS=`fslnvols $NII_FOLDER/$MEAN_DTI`
+  echo "  --> Registration procedure to MNI template - Image: $(basename $MEAN_DTI) with $NUM_VOLS 3D volumes"
+  echo "  ----> Brain extracting..."
+  # Extract non brain tissues
+  bet $NII_FOLDER/$MEAN_DTI $NII_FOLDER/tmp_b0_brain -m -f $BET_THR
+
+  echo "  ----> Registering B0 with the MNI template"
+  # Register B0 with the MNI template - Two steps
+  # Step 1: Linear affine registration
+  echo "      --> Step 1: Linear approximation..."
+  flirt -in $NII_FOLDER/tmp_b0_brain.nii.gz -ref $NII_FOLDER/tmp_MNItemplate.nii.gz -out $NII_FOLDER/tmp_b0_brain_MNI -omat $NII_FOLDER/tmp_b02MNI.mat
+
+  # Step 2: Non linear registration
+  echo "      --> Step 1: Non linear approximation..."
+  IN=$NII_FOLDER/tmp_b0_brain_MNI.nii.gz
+  REF=$NII_FOLDER/tmp_MNItemplate.nii.gz
+  OUT=$NII_FOLDER/tmp_b0_brain_MNI_nlin.nii.gz
+  FIELD=$NII_FOLDER/tmp_b0_spline_field
+  fnirt --ref=$REF --in=$IN --warpres=8,8,8 --infwhm=0 --reffwhm=0 --subsamp=2,1,1,1
+
+  # Apply brain mask in the DTI volume
+  fslmaths $NII_FOLDER/$MEAN_DTI -mas $NII_FOLDER/tmp_b0_brain_mask.nii.gz $NII_FOLDER/${MEAN_DTI%.*.*}_brain.nii.gz
+  DTI_BRAIN=$NII_FOLDER/${MEAN_DTI%.*.*}_brain.nii.gz
+
+  echo "  ----> Applying transformations in the whole data"
+  # Apply linear e non linear transformation matrices to each B1 volume
+  applywarp --ref=$REF --in=$DTI_BRAIN --premat=$NII_FOLDER/tmp_b02MNI.mat --warp=$NII_FOLDER/tmp_b0_brain_MNI_warpcoef --out=$NII_FOLDER/dti_ec_corr_mean_nlin.nii.gz
+
+  echo "  ----> Deleting temporary files..."
+  rm $NII_FOLDER/tmp*

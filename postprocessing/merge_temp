@@ -1,0 +1,55 @@
+#!/bin/bash
+# Script to register Intrasubject sequences in order to reduce motion between each acquisition
+
+TEMP_FOLDER=$1
+LIST_ACQS=`ls $TEMP_FOLDER | grep dti`
+
+# Spliting all the DTI volumes in 3D volumes
+count=0
+TOTAL_VOL=0
+NUM_SUBJ=0
+for i in $LIST_ACQS; do
+  ((NUM_SUBJ++))
+done
+
+for acq in $LIST_ACQS; do
+  TOTAL_VOL=`fslnvols $TEMP_FOLDER/$acq`
+  fslsplit $TEMP_FOLDER/$acq $TEMP_FOLDER/tmp_${acq%.*.*}_ -t
+  ((count++))
+done
+
+# Merging each volume through each volume
+for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
+  echo "    ==> Subject $subj data of $NUM_SUBJ total subjects <=="
+for (( i = 0; i < $TOTAL_VOL; i++ )); do
+  echo "    --> Merging volume $i"
+    if [[ $i -lt 10 ]]; then
+      echo "$TEMP_FOLDER/tmp_dti_subject${subj}_000${i}.nii.gz" > $TEMP_FOLDER/tmp_mergelist_${i}.txt
+      for number in `ls $TEMP_FOLDER | grep _000${i}`; do
+        echo "$TEMP_FOLDER/$number" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
+      done
+      fslmerge -t $TEMP_FOLDER/tmp_stack${i} `cat $TEMP_FOLDER/tmp_mergelist_${i}.txt`
+      echo "      -----> Calculating the template volume ${i}"
+      fslmaths $TEMP_FOLDER/tmp_stack${i} -Tmean $TEMP_FOLDER/tmp_dti_vol000${i}.nii.gz
+    elif [[ $i -ge 10 && $i -lt 100 ]]; then
+      echo "$TEMP_FOLDER/tmp_dti_subject${subj}_00${i}.nii.gz" > $TEMP_FOLDER/tmp_mergelist_${i}.txt
+      for number in `ls $TEMP_FOLDER | grep _00${i}`; do
+        echo "$TEMP_FOLDER/$number" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
+      done
+      fslmerge -t $TEMP_FOLDER/tmp_stack${i} `cat $TEMP_FOLDER/tmp_mergelist_${i}.txt`
+      echo "      -----> Calculating the template volume ${i}"
+      fslmaths $TEMP_FOLDER/tmp_stack${i} -Tmean $TEMP_FOLDER/tmp_dti_vol00${i}.nii.gz
+    fi
+done
+done
+
+# Final merge between all the mean B0 and B1
+echo ""
+echo "    --> Creating the template from all the DTI subjects"
+for name in `ls $TEMP_FOLDER | grep tmp_dti_vol`; do
+    echo "$TEMP_FOLDER/$name" >> $TEMP_FOLDER/tmp_finalmerge.txt
+done
+fslmerge -t $TEMP_FOLDER/dti_template.nii.gz `cat $TEMP_FOLDER/tmp_finalmerge.txt`
+
+# Removing trash files
+rm $TEMP_FOLDER/tmp* $TEMP_FOLDER/*subject*
