@@ -1,9 +1,7 @@
 #!/bin/bash
 #Script to perform the eddy current correction.
 #See the HIGH_PERF variable in preprocessing/config_var.conf file
-# TODO Finish to edit the case of different ACQ_PE
-# TODO Review the EDDY procedure - see the for loop maximum iteration!
-# TODO NUM_VOL variable. See the name of the files that is reading for this variable.
+# TODO See NUM_VOL call image _dti.nii.gz...it is different then in INPUT_IMG variable
 # TODO Use the variable initialized in the beginning of the file script in the eddy call. BVEC, BVAL ...
 NII_FOLDER=$1
 ACQ=$2
@@ -18,7 +16,7 @@ if [[ $HIGH_PERF == "Y" ]]; then
   echo "  --> Using FSL-EDDY"
   echo ""
   #Setting the input variables to FSL-Eddy
-  INPUT_IMG="$NII_FOLDER/${ACQ}.nii.gz"
+  INPUT_IMG="$NII_FOLDER/${ACQ}_dti.nii.gz"
   BRAIN_MASK="$NII_FOLDER/${ACQ}_brain_mask.nii.gz"
   BVEC="$NII_FOLDER/${ACQ}.bvec"
   BVAL="$NII_FOLDER/${ACQ}.bval"
@@ -29,24 +27,52 @@ if [[ $HIGH_PERF == "Y" ]]; then
   ACQ_PE=`cat config/config_var.conf | grep ACQ_PE | cut -c8-10`
 
   # Number of volumes
-  NUM_VOL=`fslnvols $NII_FOLDER/${ACQ}_dti.nii.gz`
+  NUM_VOL=`fslnvols $INPUT_IMG`
+  # Number of B0s
+  NUM_B=0
+  for bvalues in `cat $BVAL`; do
+    if [[ $bvalues -lt 100 ]]; then
+      ((NUM_B++))
+    fi
+  done
   case $ACQ_PE in
     "+Y" )
       echo "      --> Creating acquisition file: +Y PE"
-      for (( i = 0; i < 10; i++ )); do
+      for (( i = 0; i < $NUM_B; i++ )); do
         echo "0 1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
       done
-      # indx=""
-      # for (( i = 1; i <= $NUM_VOL; i++ )); do
-      #   indx="$indx 0 1 0 0.075\n"
-      # done
-      # echo $indx > $NII_FOLDER/tmp_${ACQ}_acqparam.txt
       ;;
     "-Y" )
       echo "      --> Creating acquisition file: -Y PE"
+      for (( i = 0; i < $NUM_B; i++ )); do
+        echo "0 -1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
+      ;;
+    "+X" )
+      echo "      --> Creating acquisition file: +X PE"
+      for (( i = 0; i < $NUM_B; i++ )); do
+        echo "1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
+      ;;
+    "-X" )
+      echo "      --> Creating acquisition file: -X PE"
+      for (( i = 0; i < $NUM_B; i++ )); do
+        echo "-1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
+      ;;
+    "+Z" )
+      echo "      --> Creating acquisition file: +Z PE"
+      for (( i = 0; i < $NUM_B; i++ )); do
+        echo "0 0 1 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
+      ;;
+    "-Z" )
+      echo "      --> Creating acquisition file: -Z PE"
+      for (( i = 0; i < $NUM_B; i++ )); do
+        echo "0 0 -1 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+      done
       ;;
   esac
-  # source preprocessing/eddy_acqparam.sh $NII_FOLDER $ACQ
   ACQ_PARAM="$NII_FOLDER/tmp_${ACQ}_acqparam.txt"
 
   # Preparing the INDEX file:
@@ -60,7 +86,7 @@ if [[ $HIGH_PERF == "Y" ]]; then
 
   # Running FSL-EDDY
   echo "      --> Running EDDY..."
-  eddy --imain=$NII_FOLDER/${ACQ}_dti.nii.gz --mask=$NII_FOLDER/${ACQ}_brain_mask.nii.gz --index=$NII_FOLDER/tmp_eddy_index.txt --acqp=$NII_FOLDER/tmp_${ACQ}_acqparam.txt --bvecs=$NII_FOLDER/${ACQ}.bvec --bvals=$NII_FOLDER/${ACQ}.bval --out=$NII_FOLDER/${ACQ}_eddy.nii.gz
+  eddy --imain=$INPUT_IMG --mask=$BRAIN_MASK --index=$INDEX --acqp=$ACQ_PARAM --bvecs=$BVEC --bvals=$BVAL --out=$NII_FOLDER/${ACQ}_eddy.nii.gz
   # Removing unnecessary files
   rm $NII_FOLDER/tmp* $NII_FOLDER/*.eddy_* $NII_FOLDER/*_brain_mask.nii.gz
 
@@ -68,7 +94,7 @@ else
   echo "  --> Using FDT-eddy_correct"
   echo ""
   #Setting the input variables to FDT-eddy_correct
-  INPUT_IMG="$NII_FOLDER/${ACQ}.nii.gz"
+  INPUT_IMG="$NII_FOLDER/${ACQ}_dti.nii.gz"
   OUTPUT_IMG="$NII_FOLDER/${ACQ}_eddy.nii.gz"
 
   # Find the reference image
