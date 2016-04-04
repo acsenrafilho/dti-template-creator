@@ -4,18 +4,18 @@
 FOLDER_PATH=$1
 FOLDERS=`ls $1`
 
-if [[ -d "$FOLDER_PATH/log" ]]; then
-    rm -R $FOLDER_PATH/log
+if [[ ! -d "$FOLDER_PATH/log" ]]; then
+    # rm -R $FOLDER_PATH/log
     mkdir $FOLDER_PATH/log
 fi
-mkdir $FOLDER_PATH/log
+# mkdir $FOLDER_PATH/log
 
 #Showing the folders name
 echo "Folders used to the template:"
 for f in $FOLDERS; do
   if [[ "$f" != "log" ]]; then
     echo $f
-    echo $f >> $FOLDER_PATH/log/DICOM_folders.log
+    echo $f >> $FOLDER_PATH/log/DICOM_folders_"`date | awk '{print $3 $2 $6}'`".log
   fi
 done
 

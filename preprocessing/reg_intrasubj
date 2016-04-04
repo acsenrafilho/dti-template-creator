@@ -4,6 +4,7 @@
 NII_FOLDER=$1
 LIST_ACQS=`ls $NII_FOLDER | grep _eddy.nii.gz`
 DOF=$2
+INTERP=$3
 
 count=0
 for acq in $LIST_ACQS; do
@@ -29,9 +30,9 @@ for (( ac = 1; ac < $count; ac++ )); do
   for (( i = 0; i < $TOTAL_VOL; i++ )); do
     echo "    -----> Registering volume $i ..."
       if [[ $i -lt 10 ]]; then
-        flirt -in $NII_FOLDER/tmp_acq${ac}_000${i}.nii.gz -ref $NII_FOLDER/ref3D_000${i}.nii.gz -out $NII_FOLDER/tmp_acq${ac}_000${i}_corr -dof $DOF
+        flirt -in $NII_FOLDER/tmp_acq${ac}_000${i}.nii.gz -ref $NII_FOLDER/ref3D_000${i}.nii.gz -out $NII_FOLDER/tmp_acq${ac}_000${i}_corr -interp $INTERP -dof $DOF
       elif [[ $i -ge 10 && $i -lt 100 ]]; then
-        flirt -in $NII_FOLDER/tmp_acq${ac}_00${i}.nii.gz -ref $NII_FOLDER/ref3D_00${i}.nii.gz -out $NII_FOLDER/tmp_acq${ac}_00${i}_corr -dof $DOF
+        flirt -in $NII_FOLDER/tmp_acq${ac}_00${i}.nii.gz -ref $NII_FOLDER/ref3D_00${i}.nii.gz -out $NII_FOLDER/tmp_acq${ac}_00${i}_corr -interp $INTERP -dof $DOF
       fi
   done
 done

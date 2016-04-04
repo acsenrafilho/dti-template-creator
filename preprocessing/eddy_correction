@@ -88,7 +88,8 @@ if [[ $HIGH_PERF == "Y" ]]; then
   echo "      --> Running EDDY..."
   eddy --imain=$INPUT_IMG --mask=$BRAIN_MASK --index=$INDEX --acqp=$ACQ_PARAM --bvecs=$BVEC --bvals=$BVAL --out=$NII_FOLDER/${ACQ}_eddy.nii.gz
   # Removing unnecessary files
-  rm $NII_FOLDER/tmp* $NII_FOLDER/*.eddy_* $NII_FOLDER/*_brain_mask.nii.gz
+  rm $NII_FOLDER/tmp*
+  # $NII_FOLDER/*.eddy_* $NII_FOLDER/*_brain_mask.nii.gz
 
 else
   echo "  --> Using FDT-eddy_correct"
@@ -109,5 +110,6 @@ else
   eddy_correct $NII_FOLDER/${ACQ}_dti.nii.gz $NII_FOLDER/${ACQ}_eddy.nii.gz $idx
 
   # Removing ecclog from eddy_correct pipeline
-  rm $NII_FOLDER/*.ecclog $NII_FOLDER/*_brain_mask.nii.gz
+  rm $NII_FOLDER/*.ecclog
+  # $NII_FOLDER/*_brain_mask.nii.gz
 fi

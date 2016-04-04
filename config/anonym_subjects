@@ -3,19 +3,21 @@
 FOLDERS=$1
 
 #Log file to know what was the exact name transformation
-if [[ -s "$FOLDERS/log/Anonymous_folders.log" ]]; then
-  rm $FOLDERS/log/Anonymous_folders.log
-fi
-  echo "Old name New name" > $FOLDERS/log/Anonymous_folders.log
+# if [[ -s "$FOLDERS/log/Anonymous_folders.log" ]]; then
+#   rm $FOLDERS/log/Anonymous_folders.log
+# fi
+  echo "Old_name New_name" > $FOLDERS/log/Anonymous_folders_"`date | awk '{print $3 $2 $6}'`".log
 
 #Effectivelly anonymizing the names in each folder to "subjectNUMBER"
 count=1
 for sub in `ls $FOLDERS`; do
-  if [[ "$sub" != "log" ]]; then
-    echo $sub       subject$count
-    echo $sub       subject$count >> $FOLDERS/log/Anonymous_folders.log
-    mv $FOLDERS/$sub $FOLDERS/subject$count
-    ((count++))
+  if [[ "$sub | grep subject" == "" ]]; then
+    if [[ "$sub" != "log" ]]; then
+      echo $sub       subject$count
+      echo $sub       subject$count >> $FOLDERS/log/Anonymous_folders.log
+      mv $FOLDERS/$sub $FOLDERS/subject$count
+      ((count++))
+    fi
   fi
 done
 

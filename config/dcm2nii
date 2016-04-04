@@ -22,8 +22,10 @@ for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME`; do
   #Create folder nii into the subject sequence folder
   if [[ ! -d "$FOLDERS_PATH/$SUBJECT_NAME/nii" ]]; then
     mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
+  else
+    rm -R $FOLDERS_PATH/$SUBJECT_NAME/nii
+    mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
   fi
-
   #Using dcm2nii
   echo "  ==> Extracting Nifti files, bvec and bval files in $SUBJECT_NAME/$acq <=="
   dcm2nii -d $DATE -e $EVENTS -o $FOLDERS_PATH/$SUBJECT_NAME/nii $FOLDERS_PATH/$SUBJECT_NAME/$acq
