@@ -4,7 +4,7 @@
 
 usage(){
   echo "The template creator is a group of shell scripts to build a population brian template. At this point, the scripts are able to build only DTI templates."
-  echo "Usage: $0 <DICOM path>"
+  echo "Usage: $(basename $0) <DICOM path>"
   echo ""
   echo  "DICOM path = The path where is a structured folder with all the subjects for the template creation. Please, set the folder as:"
   echo "DICOM"
@@ -19,6 +19,9 @@ if [[ $# -eq 0 ]]; then
   usage
   exit
 fi
+
+# Cheking the programs that these scripts depends
+source config/dependecy_check
 
 #Selecting and listing the folders passed to build the brain template.
 source config/folder_list $1

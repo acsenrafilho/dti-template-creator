@@ -1,0 +1,36 @@
+#!/bin/bash
+# Script to check the dependency programs needed to use the templateCreator
+
+DCM2NII=0
+FSLVERSION=0
+FSLEDDY=0
+
+#dcm2nii
+if [[ "`which dcm2nii`" == "" ]]; then
+  DCM2NII=1
+fi
+if [[ `which fsl` == "" ]]; then
+  FSLVERSION=1
+  FSLEDDY=1
+fi
+
+#Show list of dependecy
+if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 ]]; then
+  echo "templateCreator need some programs to work properly. Please provide a previous installation of the programs listed below:"
+  if [[ $DCM2NII -eq 1 ]]; then
+    echo "  -> dcm2nii program is missing!"
+    echo "Please, previously install dcm2nii in order to use templateCreator"
+    echo ""
+    echo "  More information in the website: http://www.mccauslandcenter.sc.edu/mricro/mricron/dcm2nii.html"
+    echo ""
+  fi
+  if [[ $FSLVERSION -eq 1 || $FSLEDDY -eq 1 ]]; then
+    echo "  -> FSL v5.0.9 is missing! Please intall FSL packages before using this script."
+    echo "Please, pay attention to install the FSL-EDDY package when install FSL. If you do not want to use FSL-EDDY, choose HIGH_PERF=N in conf/config_var file."
+    echo ""
+    echo "  More information in the website: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/"
+    echo ""
+  fi
+  echo "templateCreator terminated. (I'll be back!)"
+  exit
+fi

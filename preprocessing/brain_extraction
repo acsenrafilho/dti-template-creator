@@ -11,11 +11,6 @@ NECK_RM=$4
 # for vol in $LIST_DTI; do
   echo ""
   echo " ==> BET <=="
-  if [[ `which fsl` == "" ]]; then
-    echo "  Error: FSL is missing! Please intall FSL packages before using this script."
-    exit
-  fi
-
   echo ""
   if [[ "$NECK_RM" == "Y" ]]; then
     echo "    --> Using Bias and Neck removal option"
