@@ -2,19 +2,61 @@
 # Script to register Intrasubject sequences in order to reduce motion between each acquisition
 
 TEMP_FOLDER=$1
+NUM_SUBJ=$2
 LIST_ACQS=`ls $TEMP_FOLDER | grep dti`
 
-# Spliting all the DTI volumes in 3D volumes
-count=0
 TOTAL_VOL=0
-NUM_SUBJ=0
-for i in $LIST_ACQS; do
-  ((NUM_SUBJ++))
+# NUM_SUBJ=0
+# for i in $LIST_ACQS; do
+#   ((NUM_SUBJ++))
+# done
+
+# Creating the DTI maps probability distribution vector image file
+for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
+  echo "    ==> Creating DTI maps from subject $subj"
+    # if [[ $i -lt 10 ]]; then
+    BET_THR=`cat config/config_var.conf | grep BET_THR= | cut -c9-12`
+    NECK_RM=`cat config/config_var.conf | grep NECK_RM= | cut -c9-10`
+    if [[ "$NECK_RM" == "Y" ]]; then
+      # echo "    --> Using Bias and Neck removal option"
+      bet $TEMP_FOLDER/dti_subject${subj}.nii.gz $TEMP_FOLDER/subject${subj}_brain -m -f $BET_THR -B
+    else
+      # echo "    --> Using fast brain extraction procedure"
+      bet $TEMP_FOLDER/dti_subject${subj}.nii.gz $TEMP_FOLDER/subject${subj}_brain -m -f $BET_THR
+    fi
+      dtifit --data=$TEMP_FOLDER/dti_subject${subj}.nii.gz --out=$TEMP_FOLDER/subject${subj}_map --mask=$TEMP_FOLDER/subject${subj}_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/gradient.bvec --bvals=$TEMP_FOLDER/bvalues.bval
+      echo "$TEMP_FOLDER/subject${subj}_map_FA.nii.gz" >> $TEMP_FOLDER/tmp_FA_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_MD.nii.gz" >> $TEMP_FOLDER/tmp_MD_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_L1.nii.gz" >> $TEMP_FOLDER/tmp_L1_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_L2.nii.gz" >> $TEMP_FOLDER/tmp_L2_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_L3.nii.gz" >> $TEMP_FOLDER/tmp_L3_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_V1.nii.gz" >> $TEMP_FOLDER/tmp_V1_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_V2.nii.gz" >> $TEMP_FOLDER/tmp_V2_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_V3.nii.gz" >> $TEMP_FOLDER/tmp_V3_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_MO.nii.gz" >> $TEMP_FOLDER/tmp_MO_map_list.txt
+      echo "$TEMP_FOLDER/subject${subj}_map_S0.nii.gz" >> $TEMP_FOLDER/tmp_S0_map_list.txt
 done
 
+fslmerge -t $TEMP_FOLDER/FAmap_prob.nii.gz `cat $TEMP_FOLDER/tmp_FA_map_list.txt`
+fslmerge -t $TEMP_FOLDER/MDmap_prob.nii.gz `cat $TEMP_FOLDER/tmp_MD_map_list.txt`
+fslmerge -t $TEMP_FOLDER/V1map_prob.nii.gz `cat $TEMP_FOLDER/tmp_V1_map_list.txt`
+fslmerge -t $TEMP_FOLDER/V2map_prob.nii.gz `cat $TEMP_FOLDER/tmp_V2_map_list.txt`
+fslmerge -t $TEMP_FOLDER/V3map_prob.nii.gz `cat $TEMP_FOLDER/tmp_V3_map_list.txt`
+fslmerge -t $TEMP_FOLDER/L1map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L1_map_list.txt`
+fslmerge -t $TEMP_FOLDER/L2map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L2_map_list.txt`
+fslmerge -t $TEMP_FOLDER/L3map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L3_map_list.txt`
+fslmerge -t $TEMP_FOLDER/MOmap_prob.nii.gz `cat $TEMP_FOLDER/tmp_MO_map_list.txt`
+fslmerge -t $TEMP_FOLDER/S0map_prob.nii.gz `cat $TEMP_FOLDER/tmp_S0_map_list.txt`
+
+# Removing unnecessary files
+# rm $TEMP_FOLDER/subject*_map* $TEMP_FOLDER/*map_list.txt
+
+## Following the DTI raw volume template construction
+# Spliting all the DTI volumes in 3D volumes
+count=0
 for acq in $LIST_ACQS; do
   TOTAL_VOL=`fslnvols $TEMP_FOLDER/$acq`
-  fslsplit $TEMP_FOLDER/$acq $TEMP_FOLDER/tmp_${acq%.*.*}_ -t
+  fslsplit $TEMP_FOLDER/$acq $TEMP_FOLDER/tmp_${acq%.*.*}_template_ -t
   ((count++))
 done
 
@@ -24,17 +66,15 @@ for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
 for (( i = 0; i < $TOTAL_VOL; i++ )); do
   echo "    --> Merging volume $i"
     if [[ $i -lt 10 ]]; then
-      echo "$TEMP_FOLDER/tmp_dti_subject${subj}_000${i}.nii.gz" > $TEMP_FOLDER/tmp_mergelist_${i}.txt
-      for number in `ls $TEMP_FOLDER | grep _000${i}`; do
-        echo "$TEMP_FOLDER/$number" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
-      done
+        for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
+          echo "$TEMP_FOLDER/tmp_dti_subject${subj}_template_000${i}.nii.gz" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
+        done
       fslmerge -t $TEMP_FOLDER/tmp_stack${i} `cat $TEMP_FOLDER/tmp_mergelist_${i}.txt`
       echo "      -----> Calculating the template volume ${i}"
       fslmaths $TEMP_FOLDER/tmp_stack${i} -Tmean $TEMP_FOLDER/tmp_dti_vol000${i}.nii.gz
     elif [[ $i -ge 10 && $i -lt 100 ]]; then
-      echo "$TEMP_FOLDER/tmp_dti_subject${subj}_00${i}.nii.gz" > $TEMP_FOLDER/tmp_mergelist_${i}.txt
-      for number in `ls $TEMP_FOLDER | grep _00${i}`; do
-        echo "$TEMP_FOLDER/$number" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
+      for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
+        echo "$TEMP_FOLDER/tmp_dti_subject${subj}_template_00${i}.nii.gz" >> $TEMP_FOLDER/tmp_mergelist_${i}.txt
       done
       fslmerge -t $TEMP_FOLDER/tmp_stack${i} `cat $TEMP_FOLDER/tmp_mergelist_${i}.txt`
       echo "      -----> Calculating the template volume ${i}"
@@ -52,4 +92,5 @@ done
 fslmerge -t $TEMP_FOLDER/dti_template.nii.gz `cat $TEMP_FOLDER/tmp_finalmerge.txt`
 
 # Removing trash files
-rm $TEMP_FOLDER/tmp* $TEMP_FOLDER/*subject*
+rm $TEMP_FOLDER/tmp*
+rm $TEMP_FOLDER/subject*

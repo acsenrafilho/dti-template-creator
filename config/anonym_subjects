@@ -11,10 +11,10 @@ FOLDERS=$1
 #Effectivelly anonymizing the names in each folder to "subjectNUMBER"
 count=1
 for sub in `ls $FOLDERS`; do
-  if [[ "$sub | grep subject" == "" ]]; then
-    if [[ "$sub" != "log" ]]; then
-      echo $sub       subject$count
-      echo $sub       subject$count >> $FOLDERS/log/Anonymous_folders.log
+  if [[ "$sub" != "log" ]]; then
+  if [[ "$sub | cut -c1-7" != "subject" ]]; then
+      echo "$sub subject$count"
+      echo "$sub subject$count" >> $FOLDERS/log/Anonymous_folders.log
       mv $FOLDERS/$sub $FOLDERS/subject$count
       ((count++))
     fi

@@ -1,6 +1,4 @@
 #!/bin/bash
-# TODO Colocar opcao de interpolacao no flirt e fnirt (se possivel) para spline!
-#TODO dcm2nii e anonym_subjects scripts devem ver se as pastas ja tem o nome modificado e pulam esta etapa. Possibilidade de rodar novamente sem a necessidade de trocar os nomes das pastas.
 
 usage(){
   echo "The template creator is a group of shell scripts to build a population brian template. At this point, the scripts are able to build only DTI templates."
@@ -29,6 +27,7 @@ source config/folder_list $1
 #Turn the folders name in anonymous style
 source config/anonym_subjects $1
 
+NUM_SUBJ=0
 for subj in `ls $1 | grep "subj*"`; do
   echo "***********************************************************************"
   echo "*********** DTI normalization from $subj initiated ************"
@@ -46,6 +45,7 @@ for subj in `ls $1 | grep "subj*"`; do
   NII_FOLDER=$1/$subj/nii
 
   # Split the pre processing procedures to each acquisition per time. Less consumption of time per volume.
+  NUM_ACQ=0
   for acq in `ls $NII_FOLDER | grep .nii.gz | cut -c1-11`; do
     echo "Step 2: Pre processing DWIs volumes: Brain extraction and eddy correction - Folder: `echo ${acq} | cut -c4-11`"
     # Show the parameters choosen: registration (flirt -> DOF (affine, 6 dof, 3 dof), fnirt (warpsize, fhwmin, fwhmref, subsamp, ))
@@ -58,13 +58,18 @@ for subj in `ls $1 | grep "subj*"`; do
     echo "  --> Eddy current correction procedure..."
     HIGH_PERF=`cat config/config_var.conf | grep HIGH_PERF= | cut -c11-12`
     source preprocessing/eddy_correction  $NII_FOLDER $acq $HIGH_PERF
+    ((NUM_ACQ++))
   done
 
-    echo "Step 3: Registration procedure:"
+  echo "Step 3: Registration procedure:"
+  if [[ $NUM_ACQ -eq 1 ]]; then
+    mv $NII_FOLDER/`ls $NII_FOLDER | grep _eddy.nii.gz` $NII_FOLDER/dti_ec_corr_mean.nii.gz
+  else
     echo "  --> Intrasubject registration"
     DOF=`cat config/config_var.conf | grep DOF | cut -c5-6`
     INTERP=`cat config/config_var.conf | grep INTERP | cut -c8-28`
     source preprocessing/reg_intrasubj $NII_FOLDER $DOF $INTERP
+  fi
 
     echo "  --> Spatial normalization - Registration with MNI template"
     MNI=`cat config/config_var.conf | grep MNI= | cut -c5-20`
@@ -81,6 +86,8 @@ for subj in `ls $1 | grep "subj*"`; do
     echo "***********************************************************************"
     echo ""
     echo ""
+
+    ((NUM_SUBJ++))
 done
 
     echo "Step 4: Merge all subjects to build a final brain template"
@@ -89,9 +96,18 @@ done
     fi
     for subj in `ls $1 | grep subj`; do
       cp $1/$subj/nii/dti_ec_corr_mean_nlin.nii.gz $1/template
+      # TODO Add vector_norm here to calculate the mean gradient file
+      STOP=0
+      if [[ STOP -lt 1 ]]; then
+        cp $1/$subj/nii/acq*1.bvec  $1/template
+        cp $1/$subj/nii/acq*1.bval  $1/template
+        mv $1/template/acq*1.bvec $1/template/gradient.bvec
+        mv $1/template/acq*1.bval $1/template/bvalues.bval
+        ((STOP++))
+      fi
       mv $1/template/dti_ec_corr_mean_nlin.nii.gz $1/template/dti_$subj.nii.gz
     done
-    source postprocessing/merge_temp $1/template
+    source postprocessing/merge_temp $1/template $NUM_SUBJ
 
     # echo "Cleaning /nii folders and trash files from the system..."
     # for subj in `ls $1`; do

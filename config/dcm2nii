@@ -22,7 +22,7 @@ for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME`; do
   echo "  ==> Extracting Nifti files, bvec and bval files in $SUBJECT_NAME/$acq <=="
   dcm2nii -d $DATE -e $EVENTS -o $FOLDERS_PATH/$SUBJECT_NAME/nii $FOLDERS_PATH/$SUBJECT_NAME/$acq
   echo ""
-  #Renaming the files to reduce the file name and puting in the composite former: subj_acq_NUMBER.nii, *.bvec, *.bvec
+  #Renaming the files to reduce the file name and puting in the composite former: acqNUMBER_dti.nii, acqNUMBER.bval, acqNUMBER.bvec
   echo "  ====> Renaming .nii, .bvec and .bval file names <===="
   mv $FOLDERS_PATH/$SUBJECT_NAME/nii/xDTI*.nii.gz $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${acq}_dti.nii.gz
   rm $FOLDERS_PATH/$SUBJECT_NAME/nii/DTI*.nii.gz
