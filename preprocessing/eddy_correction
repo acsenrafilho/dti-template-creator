@@ -1,8 +1,7 @@
 #!/bin/bash
 #Script to perform the eddy current correction.
 #See the HIGH_PERF variable in preprocessing/config_var.conf file
-# TODO See NUM_VOL call image _dti.nii.gz...it is different then in INPUT_IMG variable
-# TODO Use the variable initialized in the beginning of the file script in the eddy call. BVEC, BVAL ...
+
 NII_FOLDER=$1
 ACQ=$2
 
@@ -99,7 +98,7 @@ else
 
   # Find the reference image
   idx=0
-  for i in `cat $NII_FOLDER/${ACQ}.bval`; do
+  for i in `cat $NII_FOLDER/${ACQ%_*}.bval`; do
     if [[ $i -lt 100 ]]; then
       break
     fi
