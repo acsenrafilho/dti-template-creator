@@ -16,11 +16,11 @@ if [[ $HIGH_PERF == "Y" ]]; then
   echo "  --> Using FSL-EDDY"
   echo ""
   #Setting the input variables to FSL-Eddy
-  INPUT_IMG="$NII_FOLDER/${ACQ}_dti.nii.gz"
-  BRAIN_MASK="$NII_FOLDER/${ACQ}_brain_mask.nii.gz"
-  BVEC="$NII_FOLDER/${ACQ}.bvec"
-  BVAL="$NII_FOLDER/${ACQ}.bval"
-  OUTPUT_IMG="$NII_FOLDER/${ACQ}_eddy.nii.gz"
+  INPUT_IMG="$NII_FOLDER/${ACQ%_*}_dti.nii.gz"
+  BRAIN_MASK="$NII_FOLDER/${ACQ%_*}_brain_mask.nii.gz"
+  BVEC="$NII_FOLDER/${ACQ%_*}.bvec"
+  BVAL="$NII_FOLDER/${ACQ%_*}.bval"
+  OUTPUT_IMG="$NII_FOLDER/${ACQ%_*}_eddy.nii.gz"
 
   # Preparing ACQ_PARAM file:
   #Read variables form config file
@@ -39,41 +39,41 @@ if [[ $HIGH_PERF == "Y" ]]; then
     "+Y" )
       echo "      --> Creating acquisition file: +Y PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "0 1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "0 1 0 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
     "-Y" )
       echo "      --> Creating acquisition file: -Y PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "0 -1 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "0 -1 0 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
     "+X" )
       echo "      --> Creating acquisition file: +X PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
     "-X" )
       echo "      --> Creating acquisition file: -X PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "-1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "-1 0 0 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
     "+Z" )
       echo "      --> Creating acquisition file: +Z PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "0 0 1 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "0 0 1 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
     "-Z" )
       echo "      --> Creating acquisition file: -Z PE"
       for (( i = 0; i < $NUM_B; i++ )); do
-        echo "0 0 -1 0.075" >> $NII_FOLDER/tmp_${ACQ}_acqparam.txt
+        echo "0 0 -1 0.075" >> $NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt
       done
       ;;
   esac
-  ACQ_PARAM="$NII_FOLDER/tmp_${ACQ}_acqparam.txt"
+  ACQ_PARAM="$NII_FOLDER/tmp_${ACQ%_*}_acqparam.txt"
 
   # Preparing the INDEX file:
   indx=""
@@ -81,12 +81,11 @@ if [[ $HIGH_PERF == "Y" ]]; then
     indx="$indx 1"
   done
   echo $indx > $NII_FOLDER/tmp_eddy_index.txt
-  # source preprocessing/eddy_index.sh $NII_FOLDER $ACQ
   INDEX="$NII_FOLDER/tmp_eddy_index.txt"
 
   # Running FSL-EDDY
   echo "      --> Running EDDY..."
-  eddy --imain=$INPUT_IMG --mask=$BRAIN_MASK --index=$INDEX --acqp=$ACQ_PARAM --bvecs=$BVEC --bvals=$BVAL --out=$NII_FOLDER/${ACQ}_eddy.nii.gz
+  eddy --imain=$INPUT_IMG --mask=$BRAIN_MASK --index=$INDEX --acqp=$ACQ_PARAM --bvecs=$BVEC --bvals=$BVAL --out=$OUTPUT_IMG
   # Removing unnecessary files
   rm $NII_FOLDER/tmp*
   # $NII_FOLDER/*.eddy_* $NII_FOLDER/*_brain_mask.nii.gz
@@ -95,8 +94,8 @@ else
   echo "  --> Using FDT-eddy_correct"
   echo ""
   #Setting the input variables to FDT-eddy_correct
-  INPUT_IMG="$NII_FOLDER/${ACQ}_dti.nii.gz"
-  OUTPUT_IMG="$NII_FOLDER/${ACQ}_eddy.nii.gz"
+  INPUT_IMG="$NII_FOLDER/${ACQ%_*}_dti.nii.gz"
+  OUTPUT_IMG="$NII_FOLDER/${ACQ%_*}_eddy.nii.gz"
 
   # Find the reference image
   idx=0
@@ -107,9 +106,9 @@ else
     ((idx++))
   done
 
-  eddy_correct $NII_FOLDER/${ACQ}_dti.nii.gz $NII_FOLDER/${ACQ}_eddy.nii.gz $idx
+  eddy_correct $INPUT_IMG $OUTPUT_IMG $idx
 
   # Removing ecclog from eddy_correct pipeline
-  rm $NII_FOLDER/*.ecclog
+  # rm $NII_FOLDER/*.ecclog
   # $NII_FOLDER/*_brain_mask.nii.gz
 fi

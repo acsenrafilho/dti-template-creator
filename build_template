@@ -46,8 +46,8 @@ for subj in `ls $1 | grep "subj*"`; do
 
   # Split the pre processing procedures to each acquisition per time. Less consumption of time per volume.
   NUM_ACQ=0
-  for acq in `ls $NII_FOLDER | grep .nii.gz | cut -c1-11`; do
-    echo "Step 2: Pre processing DWIs volumes: Brain extraction and eddy correction - Folder: `echo ${acq} | cut -c4-11`"
+  for acq in `ls $NII_FOLDER | grep .nii.gz`; do
+    echo "Step 2: Pre processing DWIs volumes: Brain extraction and eddy correction - Folder: `echo ${acq}`"
     # Show the parameters choosen: registration (flirt -> DOF (affine, 6 dof, 3 dof), fnirt (warpsize, fhwmin, fwhmref, subsamp, ))
     # Read conf file with the variables values.
     echo "  --> Creating brain mask..."

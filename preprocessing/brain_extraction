@@ -14,10 +14,10 @@ NECK_RM=$4
   echo ""
   if [[ "$NECK_RM" == "Y" ]]; then
     echo "    --> Using Bias and Neck removal option"
-    bet $NII_FOLDER/${ACQ}_dti.nii.gz $NII_FOLDER/${ACQ}_brain -m -f $BET_THR -B
+    bet $NII_FOLDER/${ACQ} $NII_FOLDER/${ACQ}_brain -m -f $BET_THR -B
   else
     echo "    --> Using fast brain extraction procedure"
-    bet $NII_FOLDER/${ACQ}_dti.nii.gz $NII_FOLDER/${ACQ}_brain -m -f $BET_THR
+    bet $NII_FOLDER/${ACQ} $NII_FOLDER/${ACQ}_brain -m -f $BET_THR
   fi
 
   # Remove the unnecessary dti brain extract volume
