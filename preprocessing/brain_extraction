@@ -8,7 +8,6 @@ ACQ=$2
 BET_THR=$3
 NECK_RM=$4
 
-# for vol in $LIST_DTI; do
   echo ""
   echo " ==> BET <=="
   echo ""
@@ -22,4 +21,3 @@ NECK_RM=$4
 
   # Remove the unnecessary dti brain extract volume
   rm $NII_FOLDER/${ACQ%_*}_brain.nii.gz
-# done
