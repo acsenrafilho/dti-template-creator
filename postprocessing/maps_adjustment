@@ -2,3 +2,130 @@
 # Script to refine the final DTI maps into ICBM space
 
 MAPS_FOLDER=$1
+# MNI_CHOSEN=$2
+MNI_CHOSEN=`cat config/config_var.conf | grep MNI= | cut -c5-20`
+FA_MAP=$MAPS_FOLDER/FAmap_prob.nii.gz
+MD_MAP=$MAPS_FOLDER/MDmap_prob.nii.gz
+L1_MAP=$MAPS_FOLDER/L1map_prob.nii.gz
+L2_MAP=$MAPS_FOLDER/L2map_prob.nii.gz
+L3_MAP=$MAPS_FOLDER/L3map_prob.nii.gz
+
+NDATA=`fslnvols $FA_MAP`
+
+# Split 4D FA maps to 3D volumes
+fslsplit $FA_MAP $MAPS_FOLDER/tmp_3DFA_ -t
+fslsplit $MD_MAP $MAPS_FOLDER/tmp_3DMD_ -t
+fslsplit $L1_MAP $MAPS_FOLDER/tmp_3DL1_ -t
+fslsplit $L2_MAP $MAPS_FOLDER/tmp_3DL2_ -t
+fslsplit $L3_MAP $MAPS_FOLDER/tmp_3DL3_ -t
+
+if [[ "$MNI_CHOSEN" == "MNI152lin_2mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-2mm.nii.gz` $MAPS_FOLDER/
+  mv $MAPS_FOLDER/JHU-ICBM-FA-2mm.nii.gz $MAPS_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152_2mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-2mm.nii.gz` $MAPS_FOLDER/
+  mv $MAPS_FOLDER/JHU-ICBM-FA-2mm.nii.gz $MAPS_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152lin_1mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-1mm.nii.gz` $MAPS_FOLDER/
+  mv $MAPS_FOLDER/JHU-ICBM-FA-1mm.nii.gz $MAPS_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152_1mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-1mm.nii.gz` $MAPS_FOLDER/
+  mv $MAPS_FOLDER/JHU-ICBM-FA-1mm.nii.gz $MAPS_FOLDER/tmp_JHUtemplate.nii.gz
+fi
+
+# Apply FNIRT on one volume to JHU space
+for (( i = 0; i < $NDATA; i++ )); do
+  echo "  => Correcting volume $i"
+  if [[ $i -lt 10 ]]; then
+    echo "    --> Fine correct: FA maps"
+    fnirt --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DFA_000${i}.nii.gz --iout=$MAPS_FOLDER/tmp_3DFA_000${i}_FA_JHU.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DFA_000${i}_FA_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DFA_000${i}_FA_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DFA_000${i}_FA_JHU.nii.gz" >> $MAPS_FOLDER/FA_corrected.txt
+
+    echo "    --> Fine correct: MD maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DMD_000${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DMD_000${i}_MD_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_000${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DMD_000${i}_MD_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DMD_000${i}_MD_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DMD_000${i}_MD_JHU.nii.gz" >> $MAPS_FOLDER/MD_corrected.txt
+
+    echo "    --> Fine correct: L1 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL1_000${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL1_000${i}_L1_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_000${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL1_000${i}_L1_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL1_000${i}_L1_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL1_000${i}_L1_JHU.nii.gz" >> $MAPS_FOLDER/L1_corrected.txt
+
+    echo "    --> Fine correct: L2 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL2_000${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL2_000${i}_L2_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_000${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL2_000${i}_L2_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL2_000${i}_L2_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL2_000${i}_L2_JHU.nii.gz" >> $MAPS_FOLDER/L2_corrected.txt
+
+    echo "    --> Fine correct: L3 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL3_000${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL3_000${i}_L3_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_000${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL3_000${i}_L3_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL3_000${i}_L3_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL3_000${i}_L3_JHU.nii.gz" >> $MAPS_FOLDER/L3_corrected.txt
+  elif [[ $i -ge 10 && $i -lt 100 ]]; then
+    echo "    --> Fine correct: FA maps"
+    fnirt --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DFA_00${i}.nii.gz --iout=$MAPS_FOLDER/tmp_3DFA_00${i}_FA_JHU.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DFA_00${i}_FA_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DFA_00${i}_FA_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DFA_00${i}_FA_JHU.nii.gz" >> $MAPS_FOLDER/FA_corrected.txt
+
+    echo "    --> Fine correct: MD maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DMD_00${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DMD_00${i}_MD_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_00${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DMD_00${i}_MD_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DMD_00${i}_MD_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DMD_00${i}_MD_JHU.nii.gz" >> $MAPS_FOLDER/MD_corrected.txt
+
+    echo "    --> Fine correct: L1 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL1_00${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL1_00${i}_L1_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_00${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL1_00${i}_L1_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL1_00${i}_L1_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL1_00${i}_L1_JHU.nii.gz" >> $MAPS_FOLDER/L1_corrected.txt
+
+    echo "    --> Fine correct: L2 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL2_00${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL2_00${i}_L2_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_00${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL2_00${i}_L2_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL2_00${i}_L2_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL2_00${i}_L2_JHU.nii.gz" >> $MAPS_FOLDER/L2_corrected.txt
+
+    echo "    --> Fine correct: L3 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL3_00${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL3_00${i}_L3_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_00${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL3_00${i}_L3_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL3_00${i}_L3_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL3_00${i}_L3_JHU.nii.gz" >> $MAPS_FOLDER/L3_corrected.txt
+  elif [[ $i -ge 100 && $i -lt 1000 ]]; then
+    echo "    --> Fine correct: FA maps"
+    fnirt --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DFA_0${i}.nii.gz --iout=$MAPS_FOLDER/tmp_3DFA_0${i}_FA_JHU.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DFA_0${i}_FA_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DFA_0${i}_FA_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DFA_0${i}_FA_JHU.nii.gz" >> $MAPS_FOLDER/FA_corrected.txt
+
+    echo "    --> Fine correct: MD maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DMD_0${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DMD_0${i}_MD_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_0${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DMD_0${i}_MD_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DMD_0${i}_MD_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DMD_0${i}_MD_JHU.nii.gz" >> $MAPS_FOLDER/MD_corrected.txt
+
+    echo "    --> Fine correct: L1 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL1_0${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL1_0${i}_L1_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_0${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL1_0${i}_L1_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL1_0${i}_L1_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL1_0${i}_L1_JHU.nii.gz" >> $MAPS_FOLDER/L1_corrected.txt
+
+    echo "    --> Fine correct: L2 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL2_0${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL2_0${i}_L2_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_0${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL2_0${i}_L2_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL2_0${i}_L2_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL2_0${i}_L2_JHU.nii.gz" >> $MAPS_FOLDER/L2_corrected.txt
+
+    echo "    --> Fine correct: L3 maps"
+    applywarp --ref=$MAPS_FOLDER/tmp_JHUtemplate.nii.gz --in=$MAPS_FOLDER/tmp_3DL3_0${i}.nii.gz --out=$MAPS_FOLDER/tmp_3DL3_0${i}_L3_JHU.nii.gz --warp=$MAPS_FOLDER/tmp_3DFA_0${i}_warpcoef.nii.gz
+    fslmaths $MAPS_FOLDER/tmp_3DL3_0${i}_L3_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/tmp_3DL3_0${i}_L3_JHU.nii.gz
+    echo "$MAPS_FOLDER/tmp_3DL3_0${i}_L3_JHU.nii.gz" >> $MAPS_FOLDER/L3_corrected.txt
+  fi
+done
+
+# # Fine spurious broder removed with the JHU masking
+# for map in `ls $MAPS_FOLDER | grep tmp | grep _JHU`; do
+#   fslmaths $MAPS_FOLDER/${map%.*.*}_JHU.nii.gz -mas $MAPS_FOLDER/tmp_JHUtemplate.nii.gz $MAPS_FOLDER/${map%.*.*}_JHU.nii.gz
+# done
+
+# Merging the final corrected maps
+fslmerge -t $MAPS_FOLDER/ICBM-FA-${NDATA}.nii.gz `cat $MAPS_FOLDER/FA_corrected.txt`
+fslmerge -t $MAPS_FOLDER/ICBM-MD-${NDATA}.nii.gz `cat $MAPS_FOLDER/MD_corrected.txt`
+fslmerge -t $MAPS_FOLDER/ICBM-L1-${NDATA}.nii.gz `cat $MAPS_FOLDER/L1_corrected.txt`
+fslmerge -t $MAPS_FOLDER/ICBM-L2-${NDATA}.nii.gz `cat $MAPS_FOLDER/L2_corrected.txt`
+fslmerge -t $MAPS_FOLDER/ICBM-L3-${NDATA}.nii.gz `cat $MAPS_FOLDER/L3_corrected.txt`
+
+# Removing unnecessary data
+rm $MAPS_FOLDER/tmp*
+rm $MAPS_FOLDER/*.txt
