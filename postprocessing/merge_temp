@@ -3,6 +3,7 @@
 
 TEMP_FOLDER=$1
 NUM_SUBJ=$2
+REG_ADJUSTMENT=$3
 LIST_ACQS=`ls $TEMP_FOLDER | grep dti`
 
 TOTAL_VOL=0
@@ -47,6 +48,11 @@ fslmerge -t $TEMP_FOLDER/L2map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L2_map_list.txt
 fslmerge -t $TEMP_FOLDER/L3map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L3_map_list.txt`
 fslmerge -t $TEMP_FOLDER/MOmap_prob.nii.gz `cat $TEMP_FOLDER/tmp_MO_map_list.txt`
 fslmerge -t $TEMP_FOLDER/S0map_prob.nii.gz `cat $TEMP_FOLDER/tmp_S0_map_list.txt`
+
+if [[ REG_ADJUSTMENT == "Y" ]]; then
+  # Registration adjustment
+  source postprocessing/maps_adjustment $TEMP_FOLDER
+fi
 
 # Removing unnecessary files
 # rm $TEMP_FOLDER/subject*_map* $TEMP_FOLDER/*map_list.txt

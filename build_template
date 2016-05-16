@@ -91,6 +91,7 @@ for subj in `ls $1 | grep "subj*"`; do
 done
 
     echo "Step 4: Merge all subjects to build a final brain template"
+    REG_ADJUSTMENT=`cat config/config_var.conf | grep REG_ADJUSTMENT= | cut -c16-17`
     if [[ `ls $1 | grep template` == "" ]]; then
       mkdir $1/template
     fi
@@ -107,7 +108,17 @@ done
       fi
       mv $1/template/dti_ec_corr_mean_nlin.nii.gz $1/template/dti_$subj.nii.gz
     done
-    source postprocessing/merge_temp $1/template $NUM_SUBJ
+    source postprocessing/merge_temp $1/template $NUM_SUBJ $REG_ADJUSTMENT
+
+    BUILD_MORE_MAPS=`cat config/config_var.conf | grep BUILD_MORE_MAPS= | cut -c17-18`
+    if [[ BUILD_MORE_MAPS === "Y" ]]; then
+      DTI_MAP_VR=`cat config/config_var.conf | grep DTI_MAP_VR= | cut -c12-13`
+      DTI_MAP_RA=`cat config/config_var.conf | grep DTI_MAP_RA= | cut -c12-13`
+      DTI_MAP_PERPD=`cat config/config_var.conf | grep DTI_MAP_PERPD= | cut -c15-16`
+      echo "Step 5: Creating DTI maps (Relative Anisotropy, Volume Ratio and Perpendicular Diffusivity)"
+      source postprocessing/additional_maps $1/template $DTI_MAP_VR $DTI_MAP_RA $DTI_MAP_PERPD
+    fi
+
 
     # echo "Cleaning /nii folders and trash files from the system..."
     # for subj in `ls $1`; do

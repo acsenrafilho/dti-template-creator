@@ -1,0 +1,4 @@
+#!/bin/bash
+# Script to refine the final DTI maps into ICBM space
+
+MAPS_FOLDER=$1
