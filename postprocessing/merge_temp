@@ -4,6 +4,7 @@
 TEMP_FOLDER=$1
 NUM_SUBJ=$2
 REG_ADJUSTMENT=$3
+MNI_CHOSEN=`cat config/config_var.conf | grep MNI= | cut -c5-20`
 LIST_ACQS=`ls $TEMP_FOLDER | grep dti`
 
 TOTAL_VOL=0
@@ -97,6 +98,54 @@ for name in `ls $TEMP_FOLDER | grep tmp_dti_vol`; do
 done
 fslmerge -t $TEMP_FOLDER/dti_template.nii.gz `cat $TEMP_FOLDER/tmp_finalmerge.txt`
 
+# Creating mean DTI maps
+BET_THR=`cat config/config_var.conf | grep BET_THR= | cut -c9-12`
+NECK_RM=`cat config/config_var.conf | grep NECK_RM= | cut -c9-10`
+if [[ "$NECK_RM" == "Y" ]]; then
+  # echo "    --> Using Bias and Neck removal option"
+  bet $TEMP_FOLDER/dti_template.nii.gz $TEMP_FOLDER/dti_mean_brain -m -f $BET_THR -B
+else
+  # echo "    --> Using fast brain extraction procedure"
+  bet $TEMP_FOLDER/dti_template.nii.gz $TEMP_FOLDER/dti_mean_brain -m -f $BET_THR
+fi
+dtifit --data=$TEMP_FOLDER/dti_template.nii.gz --out=$TEMP_FOLDER/dti_${$NUM_SUBJ} --mask=$TEMP_FOLDER/dti_mean_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/gradient.bvec --bvals=$TEMP_FOLDER/bvalues.bval
+
+# Loading the JHU template adequate to the DTI space
+if [[ "$MNI_CHOSEN" == "MNI152lin_2mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-2mm.nii.gz` $TEMP_FOLDER/
+  mv $TEMP_FOLDER/JHU-ICBM-FA-2mm.nii.gz $TEMP_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152_2mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-2mm.nii.gz` $TEMP_FOLDER/
+  mv $TEMP_FOLDER/JHU-ICBM-FA-2mm.nii.gz $TEMP_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152lin_1mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-1mm.nii.gz` $TEMP_FOLDER/
+  mv $TEMP_FOLDER/JHU-ICBM-FA-1mm.nii.gz $TEMP_FOLDER/tmp_JHUtemplate.nii.gz
+elif [[ "$MNI_CHOSEN" == "MNI152_1mm" ]]; then
+  cp `echo $FSLDIR/data/atlases/JHU/JHU-ICBM-FA-1mm.nii.gz` $TEMP_FOLDER/
+  mv $TEMP_FOLDER/JHU-ICBM-FA-1mm.nii.gz $TEMP_FOLDER/tmp_JHUtemplate.nii.gz
+fi
+
+# Final registering with JHU template
+# FA map
+fnirt --ref=$TEMP_FOLDER/tmp_JHUtemplate.nii.gz --in=$TEMP_FOLDER/dti_${$NUM_SUBJ}_FA.nii.gz --iout=$TEMP_FOLDER/dti_${$NUM_SUBJ}_FA.nii.gz
+fslmaths $TEMP_FOLDER/dti_${$NUM_SUBJ}_FA.nii.gz -mas $TEMP_FOLDER/tmp_JHUtemplate.nii.gz $TEMP_FOLDER/dti_${$NUM_SUBJ}_FA.nii.gz
+# MD map
+applywarp --ref=$TEMP_FOLDER/tmp_JHUtemplate.nii.gz --in=$TEMP_FOLDER/dti_${$NUM_SUBJ}_MD.nii.gz --out=$TEMP_FOLDER/dti_${$NUM_SUBJ}_MD.nii.gz --warp=$TEMP_FOLDER/dti_${NUM_SUBJ}_FA_warpcoef.nii.gz
+fslmaths $TEMP_FOLDER/dti_${$NUM_SUBJ}_MD.nii.gz -mas $TEMP_FOLDER/tmp_JHUtemplate.nii.gz $TEMP_FOLDER/dti_${$NUM_SUBJ}_MD.nii.gz
+# S0 map
+applywarp --ref=$TEMP_FOLDER/tmp_JHUtemplate.nii.gz --in=$TEMP_FOLDER/dti_${$NUM_SUBJ}_S0.nii.gz --out=$TEMP_FOLDER/dti_${$NUM_SUBJ}_S0.nii.gz --warp=$TEMP_FOLDER/dti_${NUM_SUBJ}_FA_warpcoef.nii.gz
+fslmaths $TEMP_FOLDER/dti_${$NUM_SUBJ}_S0.nii.gz -mas $TEMP_FOLDER/tmp_JHUtemplate.nii.gz $TEMP_FOLDER/dti_${$NUM_SUBJ}_S0.nii.gz
+
 # Removing trash files
 rm $TEMP_FOLDER/tmp*
 rm $TEMP_FOLDER/subject*
+rm $TEMP_FOLDER/*warpcoef*
+rm $TEMP_FOLDER/*.log
+rm $TEMP_FOLDER/dti_mean_brain.nii.gz
+rm $TEMP_FOLDER/dti_mean_brain_mask.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_V1.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_V2.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_V3.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_L1.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_L2.nii.gz
+rm $TEMP_FOLDER/dti_${$NUM_SUBJ}_L3.nii.gz
