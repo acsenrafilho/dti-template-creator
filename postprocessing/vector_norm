@@ -1,4 +1,2 @@
 #!/bin/bash
-# Script to create a bvec and bval file from the mean value of each bvec files used to build the DTI template.
-
-
+# Script to create a bvec file from the mean value of each bvec files used to build the DTI template.

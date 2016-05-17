@@ -111,16 +111,15 @@ done
     done
     source postprocessing/merge_temp $1/template $NUM_SUBJ $REG_ADJUSTMENT
 
-    #TODO Terminar a logica desta parte...Fazer o calculo dos mapas RA, VR e PerpD conforme descrito no Wikipedia
-    # BUILD_MORE_MAPS=`cat config/config_var.conf | grep BUILD_MORE_MAPS= | cut -c17-18`
-    # if [[ BUILD_MORE_MAPS === "Y" ]]; then
-    #   DTI_MAP_VR=`cat config/config_var.conf | grep DTI_MAP_VR= | cut -c12-13`
-    #   DTI_MAP_RA=`cat config/config_var.conf | grep DTI_MAP_RA= | cut -c12-13`
-    #   DTI_MAP_PERPD=`cat config/config_var.conf | grep DTI_MAP_PERPD= | cut -c15-16`
-    #
-    #   echo "    Appendix Step: Creating additional DTI maps namely Relative Anisotropy ($DTI_MAP_RA), Volume Ratio ($DTI_MAP_VR) and Perpendicular Diffusivity ($DTI_MAP_PERPD)"
-    #   source postprocessing/additional_maps $1/template $DTI_MAP_VR $DTI_MAP_RA $DTI_MAP_PERPD
-    # fi
+    BUILD_MORE_MAPS=`cat config/config_var.conf | grep BUILD_MORE_MAPS= | cut -c17-18`
+    if [[ BUILD_MORE_MAPS === "Y" ]]; then
+      DTI_MAP_VR=`cat config/config_var.conf | grep DTI_MAP_VR= | cut -c12-13`
+      DTI_MAP_RA=`cat config/config_var.conf | grep DTI_MAP_RA= | cut -c12-13`
+      DTI_MAP_PERPD=`cat config/config_var.conf | grep DTI_MAP_PERPD= | cut -c15-16`
+
+      echo "    Appendix Step: Creating additional DTI maps namely Relative Anisotropy ($DTI_MAP_RA), Volume Ratio ($DTI_MAP_VR) and Perpendicular Diffusivity ($DTI_MAP_PERPD)"
+      source postprocessing/additional_maps $1/template $DTI_MAP_VR $DTI_MAP_RA $DTI_MAP_PERPD
+    fi
 
     CLEAN_TRASH=`cat config/config_var.conf | grep CLEAN_TRASH= | cut -c13-14`
     if [[ CLEAN_TRASH == "Y" ]]; then
