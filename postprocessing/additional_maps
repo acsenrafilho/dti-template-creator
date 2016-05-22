@@ -1,0 +1,192 @@
+#!/bin/bash
+# Script to build other DTI maps based on the eigenvectors and eigenvalues given by FSL-FDT reconstruction.
+
+MAPS_FOLDER=$1
+BUILD_VR=$2
+BUILD_RA=$3
+BUILD_PERPD=$4
+REG_ADJUSTMENT=`cat config/config_var.conf | grep REG_ADJUSTMENT= | cut -c16-17`
+
+# Create the mean eigenvalues volume
+echo "  ==> Starting additional DTI maps procedure..."
+NVOLUMES=0
+if [[ $REG_ADJUSTMENT == "Y" ]]; then
+  fslsplit $MAPS_FOLDER/ICBM-L1* $MAPS_FOLDER/tmp_L1_ -t
+  fslsplit $MAPS_FOLDER/ICBM-L2* $MAPS_FOLDER/tmp_L2_ -t
+  fslsplit $MAPS_FOLDER/ICBM-L3* $MAPS_FOLDER/tmp_L3_ -t
+  NVOLUMES=`fslnvols $MAPS_FOLDER/ICBM-L1*`
+else
+  fslsplit $MAPS_FOLDER/L1map_prob.nii.gz $MAPS_FOLDER/tmp_L1_ -t
+  fslsplit $MAPS_FOLDER/L2map_prob.nii.gz $MAPS_FOLDER/tmp_L2_ -t
+  fslsplit $MAPS_FOLDER/L3map_prob.nii.gz $MAPS_FOLDER/tmp_L3_ -t
+  NVOLUMES=`fslnvols $MAPS_FOLDER/L1map_prob.nii.gz`
+fi
+
+for (( i = 0; i < $NVOLUMES; i++ )); do
+  if [[ $i -lt 10 ]]; then
+    fslmaths $MAPS_FOLDER/tmp_L1_000$i -add $MAPS_FOLDER/tmp_L2_000$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i -add $MAPS_FOLDER/tmp_L3_000$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i -div 3 $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i
+  fi
+  if [[ $i -ge 10 && $i -lt 100 ]]; then
+    fslmaths $MAPS_FOLDER/tmp_L1_00$i -add $MAPS_FOLDER/tmp_L2_00$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i -add $MAPS_FOLDER/tmp_L3_00$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i -div 3 $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i
+  fi
+  if [[ $i -ge 100 && $i -lt 1000 ]]; then
+    fslmaths $MAPS_FOLDER/tmp_L1_0$i -add $MAPS_FOLDER/tmp_L2_0$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i -add $MAPS_FOLDER/tmp_L3_0$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i
+    fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i -div 3 $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i
+  fi
+done
+
+if [[ $BUILD_PERPD == "Y" ]]; then
+  # Build the Perpendicular Diffusivity map
+  echo "    ==> Building the Perpendicular Diffusivity map"
+  for (( pdVol = 0; pdVol < $NVOLUMES; pdVol++ )); do
+    if [[ ${pdVol} -lt 10 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L2_000${pdVol} -add $MAPS_FOLDER/tmp_L3_000${pdVol} $MAPS_FOLDER/tmp_PERPD_000${pdVol}
+      fslmaths $MAPS_FOLDER/tmp_PERPD_000${pdVol} -div 2 $MAPS_FOLDER/tmp_PERPD_000${pdVol}
+      echo "$MAPS_FOLDER/tmp_PERPD_000${pdVol}.nii.gz" >> $MAPS_FOLDER/tmp_PERPD_list.txt
+    fi
+    if [[ ${pdVol} -ge 10 && ${pdVol} -lt 100 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L2_00${pdVol} -add $MAPS_FOLDER/tmp_L3_00${pdVol} $MAPS_FOLDER/tmp_PERPD_00${pdVol}
+      fslmaths $MAPS_FOLDER/tmp_PERPD_00${pdVol} -div 2 $MAPS_FOLDER/tmp_PERPD_00${pdVol}
+      echo "$MAPS_FOLDER/tmp_PERPD_00${pdVol}.nii.gz" >> $MAPS_FOLDER/tmp_PERPD_list.txt
+    fi
+    if [[ ${pdVol} -ge 100 && ${pdVol} -lt 1000 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L2_0${pdVol} -add $MAPS_FOLDER/tmp_L3_0${pdVol} $MAPS_FOLDER/tmp_PERPD_0${pdVol}
+      fslmaths $MAPS_FOLDER/tmp_PERPD_0${pdVol} -div 2 $MAPS_FOLDER/tmp_PERPD_0${pdVol}
+      echo "$MAPS_FOLDER/tmp_PERPD_0${pdVol}.nii.gz" >> $MAPS_FOLDER/tmp_PERPD_list.txt
+    fi
+  done
+
+  fslmerge -t $MAPS_FOLDER/dti_${NVOLUMES}_PerpDiff.nii.gz `cat $MAPS_FOLDER/tmp_PERPD_list.txt`
+  cp $MAPS_FOLDER/dti_${NVOLUMES}_PerpDiff.nii.gz ~
+  if [[ $REG_ADJUSTMENT == "Y" ]]; then
+    mv ~/dti_${NVOLUMES}_PerpDiff.nii.gz ~/ICBM-PerpDiff-${NVOLUMES}.nii.gz
+    mv ~/ICBM-PerpDiff-${NVOLUMES}.nii.gz $MAPS_FOLDER/
+  else
+    mv ~/dti_${NVOLUMES}_PerpDiff.nii.gz ~/PerpDiffmap_prob.nii.gz
+    mv ~/PerpDiffmap_prob.nii.gz $MAPS_FOLDER/
+  fi
+
+  fslmaths $MAPS_FOLDER/dti_${NVOLUMES}_PerpDiff.nii.gz -Tmean $MAPS_FOLDER/dti_${NVOLUMES}_PerpDiff.nii.gz
+fi
+if [[ $BUILD_VR == "Y" ]]; then
+  # Build the Volume Ratio map
+  echo "    ==> Building the Volume Ratio map"
+  for (( i = 0; i < $NVOLUMES; i++ )); do
+    if [[ $i -lt 10 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L1_000$i -mul $MAPS_FOLDER/tmp_L2_000$i $MAPS_FOLDER/tmp_L1L2_000$i
+      fslmaths $MAPS_FOLDER/tmp_L1L2_000$i -mul $MAPS_FOLDER/tmp_L3_000$i $MAPS_FOLDER/tmp_L1L2L3_000$i
+
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_000$i
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_000$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_000$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1L2L3_000$i -div $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_000$i $MAPS_FOLDER/tmp_VR_000$i
+      echo "$MAPS_FOLDER/tmp_VR_000$i" >> $MAPS_FOLDER/tmp_VR_list.txt
+    fi
+    if [[ $i -ge 10 && $i -lt 100 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L1_00$i -mul $MAPS_FOLDER/tmp_L2_00$i $MAPS_FOLDER/tmp_L1L2_00$i
+      fslmaths $MAPS_FOLDER/tmp_L1L2_00$i -mul $MAPS_FOLDER/tmp_L3_00$i $MAPS_FOLDER/tmp_L1L2L3_00$i
+
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_00$i
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_00$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_00$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1L2L3_00$i -div $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_00$i $MAPS_FOLDER/tmp_VR_00$i
+      echo "$MAPS_FOLDER/tmp_VR_00$i" >> $MAPS_FOLDER/tmp_VR_list.txt
+    fi
+    if [[ $i -ge 100 && $i -lt 1000 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_L1_0$i -mul $MAPS_FOLDER/tmp_L2_0$i $MAPS_FOLDER/tmp_L1L2_0$i
+      fslmaths $MAPS_FOLDER/tmp_L1L2_0$i -mul $MAPS_FOLDER/tmp_L3_0$i $MAPS_FOLDER/tmp_L1L2L3_0$i
+
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_0$i
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow2_0$i -mul $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_0$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1L2L3_0$i -div $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_pow3_0$i $MAPS_FOLDER/tmp_VR_0$i
+      echo "$MAPS_FOLDER/tmp_VR_0$i" >> $MAPS_FOLDER/tmp_VR_list.txt
+    fi
+  done
+
+  fslmerge -t $MAPS_FOLDER/dti_${NVOLUMES}_VR.nii.gz `cat $MAPS_FOLDER/tmp_VR_list.txt`
+  cp $MAPS_FOLDER/dti_${NVOLUMES}_VR.nii.gz ~
+  if [[ $REG_ADJUSTMENT == "Y" ]]; then
+    mv ~/dti_${NVOLUMES}_VR.nii.gz ~/ICBM-VR-${NVOLUMES}.nii.gz
+    mv ~/ICBM-VR-${NVOLUMES}.nii.gz $MAPS_FOLDER/
+  else
+    mv ~/dti_${NVOLUMES}_VR.nii.gz ~/VRmap_prob.nii.gz
+    mv ~/VRmap_prob.nii.gz $MAPS_FOLDER/
+  fi
+
+  fslmaths $MAPS_FOLDER/dti_${NVOLUMES}_VR.nii.gz -Tmean $MAPS_FOLDER/dti_${NVOLUMES}_VR.nii.gz
+fi
+if [[ $BUILD_RA == "Y" ]]; then
+  # Build the Relative Anisotropy map
+  echo "    ==> Building the Relative Anisotropy map"
+  for (( i = 0; i < $NVOLUMES; i++ )); do
+    if [[ $i -lt 10 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i -mul 3 -sqrt $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_000$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1_000$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_L1minusE_000$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_000$i -mul $MAPS_FOLDER/tmp_L1minusE_000$i $MAPS_FOLDER/tmp_L1minusE_pow2_000$i
+      fslmaths $MAPS_FOLDER/tmp_L2_000$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_L2minusE_000$i
+      fslmaths $MAPS_FOLDER/tmp_L2minusE_000$i -mul $MAPS_FOLDER/tmp_L2minusE_000$i $MAPS_FOLDER/tmp_L2minusE_pow2_000$i
+      fslmaths $MAPS_FOLDER/tmp_L3_000$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_L3minusE_000$i
+      fslmaths $MAPS_FOLDER/tmp_L3minusE_000$i -mul $MAPS_FOLDER/tmp_L3minusE_000$i $MAPS_FOLDER/tmp_L3minusE_pow2_000$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_pow2_000$i -add $MAPS_FOLDER/tmp_L2minusE_pow2_000$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_000$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_000$i -add $MAPS_FOLDER/tmp_L3minusE_pow2_000$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_000$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_000$i -sqrt -div $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_000$i $MAPS_FOLDER/tmp_RA_000$i
+      echo "$MAPS_FOLDER/tmp_RA_000$i" >> $MAPS_FOLDER/tmp_RA_list.txt
+    fi
+    if [[ $i -ge 10 && $i -lt 100 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i -mul 3 -sqrt $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_00$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1_00$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_L1minusE_00$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_00$i -mul $MAPS_FOLDER/tmp_L1minusE_00$i $MAPS_FOLDER/tmp_L1minusE_pow2_00$i
+      fslmaths $MAPS_FOLDER/tmp_L2_00$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_L2minusE_00$i
+      fslmaths $MAPS_FOLDER/tmp_L2minusE_00$i -mul $MAPS_FOLDER/tmp_L2minusE_00$i $MAPS_FOLDER/tmp_L2minusE_pow2_00$i
+      fslmaths $MAPS_FOLDER/tmp_L3_00$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_L3minusE_00$i
+      fslmaths $MAPS_FOLDER/tmp_L3minusE_00$i -mul $MAPS_FOLDER/tmp_L3minusE_00$i $MAPS_FOLDER/tmp_L3minusE_pow2_00$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_pow2_00$i -add $MAPS_FOLDER/tmp_L2minusE_pow2_00$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_00$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_00$i -add $MAPS_FOLDER/tmp_L3minusE_pow2_00$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_00$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_00$i -sqrt -div $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_00$i $MAPS_FOLDER/tmp_RA_00$i
+      echo "$MAPS_FOLDER/tmp_RA_00$i" >> $MAPS_FOLDER/tmp_RA_list.txt
+    fi
+    if [[ $i -ge 100 && $i -lt 1000 ]]; then
+      fslmaths $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i -mul 3 -sqrt $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_0$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1_0$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_L1minusE_0$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_0$i -mul $MAPS_FOLDER/tmp_L1minusE_0$i $MAPS_FOLDER/tmp_L1minusE_pow2_0$i
+      fslmaths $MAPS_FOLDER/tmp_L2_0$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_L2minusE_0$i
+      fslmaths $MAPS_FOLDER/tmp_L2minusE_0$i -mul $MAPS_FOLDER/tmp_L2minusE_0$i $MAPS_FOLDER/tmp_L2minusE_pow2_0$i
+      fslmaths $MAPS_FOLDER/tmp_L3_0$i -sub $MAPS_FOLDER/tmp_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_L3minusE_0$i
+      fslmaths $MAPS_FOLDER/tmp_L3minusE_0$i -mul $MAPS_FOLDER/tmp_L3minusE_0$i $MAPS_FOLDER/tmp_L3minusE_pow2_0$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE_pow2_0$i -add $MAPS_FOLDER/tmp_L2minusE_pow2_0$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_0$i
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2_0$i -add $MAPS_FOLDER/tmp_L3minusE_pow2_0$i $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_0$i
+
+      fslmaths $MAPS_FOLDER/tmp_L1minusE2plusL2minusE2plusL3minusE2_0$i -sqrt -div $MAPS_FOLDER/tmp_SQRT3_MEAN_EIGENVALUE_0$i $MAPS_FOLDER/tmp_RA_0$i
+      echo "$MAPS_FOLDER/tmp_RA_0$i" >> $MAPS_FOLDER/tmp_RA_list.txt
+    fi
+  done
+
+  fslmerge -t $MAPS_FOLDER/dti_${NVOLUMES}_RA.nii.gz `cat $MAPS_FOLDER/tmp_RA_list.txt`
+  cp $MAPS_FOLDER/dti_${NVOLUMES}_RA.nii.gz ~
+  if [[ $REG_ADJUSTMENT == "Y" ]]; then
+    mv ~/dti_${NVOLUMES}_RA.nii.gz ~/ICBM-RA-${NVOLUMES}.nii.gz
+    mv ~/ICBM-RA-${NVOLUMES}.nii.gz $MAPS_FOLDER/
+  else
+    mv ~/dti_${NVOLUMES}_RA.nii.gz ~/RAmap_prob.nii.gz
+    mv ~/RAmap_prob.nii.gz $MAPS_FOLDER/
+  fi
+
+  fslmaths $MAPS_FOLDER/dti_${NVOLUMES}_RA.nii.gz -Tmean $MAPS_FOLDER/dti_${NVOLUMES}_RA.nii.gz
+fi
+
+# Removing tmp files
+rm $MAPS_FOLDER/tmp*

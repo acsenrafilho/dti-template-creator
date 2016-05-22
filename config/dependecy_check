@@ -4,6 +4,7 @@
 DCM2NII=0
 FSLVERSION=0
 FSLEDDY=0
+FSLDATA=0
 
 #dcm2nii
 if [[ "`which dcm2nii`" == "" ]]; then
@@ -13,9 +14,12 @@ if [[ `which fsl` == "" ]]; then
   FSLVERSION=1
   FSLEDDY=1
 fi
+if [[ ! -d "$FSLDIR/data" ]]; then
+  FSLDATA=1
+fi
 
 #Show list of dependecy
-if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 ]]; then
+if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 || $FSLDATA -eq 1 ]]; then
   echo "templateCreator need some programs to work properly. Please provide a previous installation of the programs listed below:"
   if [[ $DCM2NII -eq 1 ]]; then
     echo "  -> dcm2nii program is missing!"
@@ -27,6 +31,13 @@ if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 ]]; then
   if [[ $FSLVERSION -eq 1 || $FSLEDDY -eq 1 ]]; then
     echo "  -> FSL v5.0.9 is missing! Please intall FSL packages before using this script."
     echo "Please, pay attention to install the FSL-EDDY package when install FSL. If you do not want to use FSL-EDDY, choose HIGH_PERF=N in conf/config_var file."
+    echo ""
+    echo "  More information in the website: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/"
+    echo ""
+  fi
+  if [[ $FSLDATA -eq 1 ]]; then
+    echo "  -> FSL data folder is missing! Please intall the full FSL packages before using this script."
+    echo "The data folder (usually located in /usr/share/fsl/data/) is missing. Please, intall the full FSL package, including the atlas and brain templates."
     echo ""
     echo "  More information in the website: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/"
     echo ""
