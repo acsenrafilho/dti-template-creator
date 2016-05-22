@@ -52,6 +52,7 @@ fslmerge -t $TEMP_FOLDER/S0map_prob.nii.gz `cat $TEMP_FOLDER/tmp_S0_map_list.txt
 
 if [[ REG_ADJUSTMENT == "Y" ]]; then
   # Registration adjustment
+  echo "    ==> Making the maps adjustment to fit the ICBM template"
   source postprocessing/maps_adjustment $TEMP_FOLDER
 fi
 
@@ -126,6 +127,7 @@ elif [[ "$MNI_CHOSEN" == "MNI152_1mm" ]]; then
 fi
 
 # Final registering with JHU template
+echo "    --> Final registering with ICBM template"
 # FA map
 fnirt --ref=$TEMP_FOLDER/tmp_JHUtemplate.nii.gz --in=$TEMP_FOLDER/dti_${NUM_SUBJ}_FA.nii.gz --iout=$TEMP_FOLDER/dti_${NUM_SUBJ}_FA.nii.gz
 fslmaths $TEMP_FOLDER/dti_${NUM_SUBJ}_FA.nii.gz -mas $TEMP_FOLDER/tmp_JHUtemplate.nii.gz $TEMP_FOLDER/dti_${NUM_SUBJ}_FA.nii.gz
