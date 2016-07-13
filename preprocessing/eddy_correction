@@ -30,7 +30,7 @@ if [[ $HIGH_PERF == "Y" ]]; then
   # Number of B0s
   NUM_B=0
   for bvalues in `cat $BVAL`; do
-    if [[ $bvalues -lt 100 ]]; then
+    if [[ ${bvalues%.*} -lt 100 ]]; then
       ((NUM_B++))
     fi
   done

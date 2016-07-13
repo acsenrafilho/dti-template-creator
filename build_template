@@ -2,19 +2,35 @@
 
 usage(){
   echo "The template creator is a group of shell scripts to build a population brian template. At this point, the scripts are able to build only DTI templates."
-  echo "Usage: $(basename $0) <DICOM path>"
+  echo "Usage: $(basename $0) <Data main folder path>"
   echo ""
-  echo  "DICOM path = The path where is a structured folder with all the subjects for the template creation. Please, set the folder as:"
-  echo "DICOM"
-  echo "  -> subject1"
+  echo  "Data main folder path = The path where is a structured folder with all the subjects for the template creation. Please, set the folder as:"
+  echo "Data main folder path"
+  echo "  -> subject 1 folder"
   echo "    -> DTI DICOM folder 1 (all the DICOM images that compose one single DTI acquisition)"
   echo "    -> DTI DICOM folder 2"
   echo "    -> ..."
-  echo "    -> DTI DICOM folder n"
+  echo "    -> DTI DICOM folder N"
+  echo "  -> subject 2 folder"
+  echo "    -> DTI DICOM folder 1"
+  echo "    -> DTI DICOM folder 2"
+  echo "    -> ..."
+  echo "    -> DTI DICOM folder N"
+  echo "  -> subject 2 folder"
+  echo "    -> DTI DICOM folder 1"
+  echo "    -> DTI DICOM folder 2"
+  echo "    -> ..."
+  echo "    -> DTI DICOM folder N"
 }
 
 if [[ $# -eq 0 ]]; then
   usage
+  exit
+fi
+
+#Checking if the input folder exist
+if [[ ! -d $1 ]]; then
+  echo "ERROR: The input folder path does not exist!"
   exit
 fi
 
@@ -35,11 +51,12 @@ for subj in `ls $1 | grep "subj*"`; do
   echo ""
   echo "*** Initial process to create a brain template ***"
   echo ""
-  echo "Step 1: Converting DICOM to Nifti"
 
-  # Apply dcm2nii to create the nii files from the DICOM FOLDERS
+  # Apply dcm2nii to create the nii files from the DICOM FOLDERS.
+  # If you data is already in Nifti format, change the config_var.conf IS_NIFTI variable.
   # Starting to select each subject to do all the process.
-  source config/dcm2nii $1 $subj
+  IS_NIFTI=`cat config/config_var.conf | grep IS_NIFTI= | cut -c10-11`
+  source config/dcm2nii $1 $subj $IS_NIFTI
 
   # nii folder has all the images to process
   NII_FOLDER=$1/$subj/nii

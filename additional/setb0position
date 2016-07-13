@@ -1,0 +1,86 @@
+#!/bin/bash
+
+#Script to reformat the DWIs positions, which can change the B0 volume in a desired position.
+
+usage(){
+  echo "Script to reformat the DWIs positions, which can change the B0 volume in a desired position."
+  echo "Usage: $(basename $0) <Nifti 4D DWIs> <B0 position>"
+  echo ""
+  echo  "Nifti 4D DWIs = Input DWIs volumes (4D Nifti file) which you want to change the B0 volume position."
+  echo  "B0 position   = Position on the 4D Nifti volume where you want to add the B0 volume."
+}
+
+if [[ $# -lt 2 ]]; then
+  usage
+  exit
+fi
+
+NIFTI_DATA_BASENAME=$(basename $1)
+NIFTI_DATA_PATH=$(dirname $1)
+B0_POSITION=$2
+
+#Check if the Nifti format is OK with the default pattern
+DTI_NII=$1
+BVAL=${NIFTI_DATA_PATH}/${NIFTI_DATA_BASENAME%.*.*}.bval
+BVEC=${NIFTI_DATA_PATH}/${NIFTI_DATA_BASENAME%.*.*}.bvec
+
+# Test if bvec and bval exist
+if [[ ! -e $BVAL || ! -e $BVEC ]]; then
+  echo "ERROR: .bvec and/or .bval files are missing! Please provide the .bvec and .bval files with the exact DTI Nifti data filename."
+  exit
+fi
+
+# 1 - Check number of b values and DTI volumes
+BVAL_ENTRIES=`cat $BVAL | wc -l`
+DTI_VOLUMES=`fslnvols $DTI_NII`
+if [[ ! "$BVAL_ENTRIES" == "$DTI_VOLUMES" ]]; then
+  echo "ERROR: Number of volumes in DTI Nifti data do not have same number of b values!"
+  exit
+fi
+# 2 - Check if the first volume in DTI data is the b0 volume
+b0_index=0
+while read line; do
+  if [[ ! $line == "0" ]]; then
+    ((b0_index++))
+  fi
+done < $BVAL
+echo "  -> Found B0 volume in the $b0_index index...changing it to $B0_POSITION."
+
+#Split DTI and reformat to the desired B0 position
+SPLIT_INDEX=$(expr $b0_index - 1)
+fslsplit $DTI_NII ${NIFTI_DATA_PATH}/tmp_vol_ -t
+fslmerge -t $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.nii.gz `ls $NIFTI_DATA_PATH/tmp_vol_*${SPLIT_INDEX}.nii.gz` `ls $NIFTI_DATA_PATH/tmp* | grep -v ${SPLIT_INDEX}`
+# Clean unnecessary files
+rm `ls $NIFTI_DATA_PATH/tmp*`
+echo "  --> DTI reformat done..."
+
+#Edit b values text file
+for (( i = 1; i <= `fslnvols $DTI_NII`; i++ )); do
+  if [[ $i -eq $B0_POSITION ]]; then
+    echo "0" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bval
+  elif [[ $i -eq $b0_index ]]; then
+      sed "${B0_POSITION}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bval >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bval
+  else
+      sed "${i}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bval >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bval
+  fi
+done
+echo "  --> .bval reformat done..."
+
+#Edit gradient text file
+echo "" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+for (( i = 1; i <= `fslnvols $DTI_NII`; i++ )); do
+  if [[ $i -eq $B0_POSITION ]]; then
+    echo "0 0 0" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+  elif [[ $i -eq $b0_index ]]; then
+      sed "${B0_POSITION}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+  else
+      sed "${i}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+  fi
+done
+echo "  --> .bvec reformat done..."
+
+
+echo "Files saved:"
+echo "  ${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.nii.gz"
+echo "  ${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bval"
+echo "  ${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec"

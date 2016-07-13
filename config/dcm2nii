@@ -3,30 +3,67 @@
 
 FOLDERS_PATH=$1
 SUBJECT_NAME=$2
+IS_NIFTI=$3
 
 #Read variables form config file
 DATE=`cat config/config_var.conf | grep DATE_FILE | cut -c11-13`
 EVENTS=`cat config/config_var.conf | grep EVENTS_FILE | cut -c13-15`
+IS_NIFTI=`cat config/config_var.conf | grep IS_NIFTI= | cut -c10-11`
 
-
-#Executing the nii extraction
-for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME`; do
+if [[ $IS_NIFTI == "Y" ]]; then
+  echo "Step 1: Checking input Nifti data"
   #Create folder nii into the subject sequence folder
   if [[ ! -d "$FOLDERS_PATH/$SUBJECT_NAME/nii" ]]; then
     mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
-  else
-    rm -R $FOLDERS_PATH/$SUBJECT_NAME/nii
-    mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
   fi
-  #Using dcm2nii
-  echo "  ==> Extracting Nifti files, bvec and bval files in $SUBJECT_NAME/$acq <=="
-  dcm2nii -d $DATE -e $EVENTS -o $FOLDERS_PATH/$SUBJECT_NAME/nii $FOLDERS_PATH/$SUBJECT_NAME/$acq
-  echo ""
-  #Renaming the files to reduce the file name and puting in the composite former: acqNUMBER_dti.nii, acqNUMBER.bval, acqNUMBER.bvec
-  echo "  ====> Renaming .nii, .bvec and .bval file names <===="
-  mv $FOLDERS_PATH/$SUBJECT_NAME/nii/xDTI*.nii.gz $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${acq}_dti.nii.gz
-  rm $FOLDERS_PATH/$SUBJECT_NAME/nii/DTI*.nii.gz
-  mv $FOLDERS_PATH/$SUBJECT_NAME/nii/xDTI*.bvec $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${acq}.bvec
-  mv $FOLDERS_PATH/$SUBJECT_NAME/nii/xDTI*.bval $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${acq}.bval
-done
-# dcm2nii -d N -e N -o /home/antonio/Pictures/ /home/antonio/Pictures/SE000001/
+
+  count=1
+  for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME | grep .nii.gz`; do
+  #Move files into nii folder
+  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq}` $FOLDERS_PATH/$SUBJECT_NAME/nii
+  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bval` $FOLDERS_PATH/$SUBJECT_NAME/nii
+  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bvec` $FOLDERS_PATH/$SUBJECT_NAME/nii
+
+  if [[ $count -lt 10 ]]; then
+    #Renaming input files
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq}` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}_dti.nii.gz
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq%.*.*}.bval` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}.bval
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq%.*.*}.bvec` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}.bvec
+  elif [[ $count -ge 10 && $count -lt 100 ]]; then
+    #Renaming input files
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq}` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}_dti.nii.gz
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq%.*.*}.bval` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}.bval
+    mv `ls $FOLDERS_PATH/$SUBJECT_NAME/nii/${acq%.*.*}.bvec` $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}.bvec
+  fi
+  done
+else
+      echo "Step 1: Converting DICOM to Nifti"
+    #Executing the nii extraction
+    count=1
+    for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME`; do
+      #Create folder nii into the subject sequence folder
+      if [[ ! -d "$FOLDERS_PATH/$SUBJECT_NAME/nii" ]]; then
+        mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
+      fi
+
+      #Using dcm2nii
+      echo "  ==> Extracting Nifti files, bvec and bval files in $SUBJECT_NAME/$acq <=="
+      dcm2nii -d $DATE -e $EVENTS -o $FOLDERS_PATH/$SUBJECT_NAME/nii $FOLDERS_PATH/$SUBJECT_NAME/$acq
+      echo ""
+      #Renaming the files to reduce the file name and puting in the composite former: acqNUMBER_dti.nii, acqNUMBER.bval, acqNUMBER.bvec
+      echo "  ====> Renaming .nii, .bvec and .bval file names <===="
+      DTI_BASENAME=`ls $FOLDERS_PATH/$SUBJECT_NAME/nii/ | grep bval`
+      if [[ $count -lt 10 ]]; then
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.bvec $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}.bvec
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.bval $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}.bval
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.nii.gz $FOLDERS_PATH/$SUBJECT_NAME/nii/acq0${count}_dti.nii.gz
+        rm $FOLDERS_PATH/$SUBJECT_NAME/nii/`ls $FOLDERS_PATH/$SUBJECT_NAME/nii/ | grep -v acq`
+      elif [[ $count -ge 10 && $count -lt 100 ]]; then
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.bvec $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}.bvec
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.bval $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}.bval
+        mv $FOLDERS_PATH/$SUBJECT_NAME/nii/${DTI_BASENAME%.*}.nii.gz $FOLDERS_PATH/$SUBJECT_NAME/nii/acq${count}_dti.nii.gz
+        rm $FOLDERS_PATH/$SUBJECT_NAME/nii/`ls $FOLDERS_PATH/$SUBJECT_NAME/nii/ | grep -v acq`
+      fi
+    ((count++))
+    done
+fi
