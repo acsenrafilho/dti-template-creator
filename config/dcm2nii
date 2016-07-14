@@ -16,13 +16,13 @@ if [[ $IS_NIFTI == "Y" ]]; then
   if [[ ! -d "$FOLDERS_PATH/$SUBJECT_NAME/nii" ]]; then
     mkdir $FOLDERS_PATH/$SUBJECT_NAME/nii
   fi
-
+#TODO TROCAR O MV PARA CP!!!!
   count=1
   for acq in `ls $FOLDERS_PATH/$SUBJECT_NAME | grep .nii.gz`; do
-  #Move files into nii folder
-  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq}` $FOLDERS_PATH/$SUBJECT_NAME/nii
-  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bval` $FOLDERS_PATH/$SUBJECT_NAME/nii
-  mv `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bvec` $FOLDERS_PATH/$SUBJECT_NAME/nii
+  #Copy files into nii folder
+  cp `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq}` $FOLDERS_PATH/$SUBJECT_NAME/nii
+  cp `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bval` $FOLDERS_PATH/$SUBJECT_NAME/nii
+  cp `ls $FOLDERS_PATH/$SUBJECT_NAME/${acq%.*.*}.bvec` $FOLDERS_PATH/$SUBJECT_NAME/nii
 
   if [[ $count -lt 10 ]]; then
     #Renaming input files

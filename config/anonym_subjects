@@ -14,7 +14,7 @@ for sub in `ls $FOLDERS`; do
   if [[ "$sub" != "log" ]]; then
   if [[ "$sub | cut -c1-7" != "subject" ]]; then
       echo "$sub subject$count"
-      echo "$sub subject$count" >> $FOLDERS/log/Anonymous_folders.log
+      echo "$sub subject$count" >> $FOLDERS/log/Anonymous_folders_"`date | awk '{print $3 $2 $6}'`".log
       mv $FOLDERS/$sub $FOLDERS/subject$count
       ((count++))
     fi

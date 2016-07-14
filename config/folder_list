@@ -15,7 +15,7 @@ echo "Folders used to the template:"
 for f in $FOLDERS; do
   if [[ "$f" != "log" ]]; then
     echo $f
-    echo $f >> $FOLDER_PATH/log/DICOM_folders_"`date | awk '{print $3 $2 $6}'`".log
+    echo $f >> $FOLDER_PATH/log/Folders-list-"`date | awk '{print $3 $2 $6}'`".log
   fi
 done
 
