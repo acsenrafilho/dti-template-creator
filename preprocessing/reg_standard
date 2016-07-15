@@ -46,7 +46,7 @@ fi
   flirt -in $NII_FOLDER/tmp_b0_brain.nii.gz -ref $NII_FOLDER/tmp_MNItemplate.nii.gz -out $NII_FOLDER/tmp_b0_brain_MNI -omat $NII_FOLDER/tmp_b02MNI.mat -interp $INTERP
 
   # Step 2: Non linear registration
-  echo "      --> Step 1: Non linear approximation..."
+  echo "      --> Step 2: Non linear approximation..."
   IN=$NII_FOLDER/tmp_b0_brain_MNI.nii.gz
   REF=$NII_FOLDER/tmp_MNItemplate.nii.gz
   OUT=$NII_FOLDER/tmp_b0_brain_MNI_nlin.nii.gz

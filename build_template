@@ -43,6 +43,9 @@ source config/folder_list $1
 #Turn the folders name in anonymous style
 source config/anonym_subjects $1
 
+# Saving configuration file in log folder
+cat config/config_var.conf > $1/log/configuration_setup.log
+
 NUM_SUBJ=0
 for subj in `ls $1 | grep "subj*"`; do
   echo "***********************************************************************"
@@ -115,21 +118,24 @@ done
     fi
     for subj in `ls $1 | grep subj`; do
       cp $1/$subj/nii/dti_ec_corr_mean_nlin.nii.gz $1/template
-      # TODO Add vector_norm here to calculate the mean gradient file
-      STOP=0
-      if [[ STOP -lt 1 ]]; then
-        cp $1/$subj/nii/acq*1.bvec  $1/template
-        cp $1/$subj/nii/acq*1.bval  $1/template
-        mv $1/template/acq*1.bvec $1/template/gradient.bvec
-        mv $1/template/acq*1.bval $1/template/bvalues.bval
-        ((STOP++))
-      fi
+      # TODO Add vector_norm here to calculate the mean gradient file...USAR O SCRIPT PARA PELO MENOS FAZER A COPIA...DEPOIS PENSAR EM COMO TERMINAR
+      echo "  --> Correcting gradient directions..."
+      source postprocessing/vector_norm  $1/$subj/nii/ $subj
+
+      # STOP=0
+      # if [[ STOP -lt 1 ]]; then
+      #   cp $1/$subj/nii/acq*1.bvec  $1/template
+      #   cp $1/$subj/nii/acq*1.bval  $1/template
+      #   mv $1/template/acq*1.bvec $1/template/gradient.bvec
+      #   mv $1/template/acq*1.bval $1/template/bvalues.bval
+      #   ((STOP++))
+      # fi
       mv $1/template/dti_ec_corr_mean_nlin.nii.gz $1/template/dti_$subj.nii.gz
     done
     source postprocessing/merge_temp $1/template $NUM_SUBJ $REG_ADJUSTMENT
 
     BUILD_MORE_MAPS=`cat config/config_var.conf | grep BUILD_MORE_MAPS= | cut -c17-18`
-    if [[ BUILD_MORE_MAPS === "Y" ]]; then
+    if [[ $BUILD_MORE_MAPS == "Y" ]]; then
       DTI_MAP_VR=`cat config/config_var.conf | grep DTI_MAP_VR= | cut -c12-13`
       DTI_MAP_RA=`cat config/config_var.conf | grep DTI_MAP_RA= | cut -c12-13`
       DTI_MAP_PERPD=`cat config/config_var.conf | grep DTI_MAP_PERPD= | cut -c15-16`
@@ -139,12 +145,12 @@ done
     fi
 
     CLEAN_TRASH=`cat config/config_var.conf | grep CLEAN_TRASH= | cut -c13-14`
-    if [[ CLEAN_TRASH == "Y" ]]; then
+    if [[ $CLEAN_TRASH == "Y" ]]; then
       echo "    Appendix Step: Cleaning subfile folders and trash files..."
       for subj in `ls $1`; do
         if [[ `ls $subj | grep nii` != "" ]]; then
           echo "  --> Cleaning folder: $subj"
-          rm -R $subj/nii
+          rm -R $1/$subj/nii
         fi
       done
     fi

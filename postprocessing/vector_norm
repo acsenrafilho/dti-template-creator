@@ -1,2 +1,28 @@
 #!/bin/bash
 # Script to create a bvec file from the mean value of each bvec files used to build the DTI template.
+
+#TODO USAR PARA APENAS FAZER A COPIA...
+NIFTI_FOLDER=$1
+SUBJECT_NAME=$2
+BVEC_LIST=`ls $NIFTI_FOLDER | grep .bvec`
+
+numGradients=0
+for i in ${BVEC_LIST[@]}; do
+  ((numGradients++))
+done
+echo "    ----> Found $numGradients bvecs in folder: $NIFTI_FOLDER"
+
+echo "      --> Correcting gradients values..."
+#TODO Terminar a correcao dos gradientes baseado na matrix de corregistro...por enquanto somente copia o primeiro arquivo
+STOP=0
+for bFile in ${BVEC_LIST[@]}; do
+  if [[ $STOP -lt 1 ]]; then
+    #Copy bvec file
+    cp $NIFTI_FOLDER/$bFile ${NIFTI_FOLDER%/*/*/}/template
+    mv ${NIFTI_FOLDER%/*/*/}/template/${bFile} ${NIFTI_FOLDER%/*/*/}/template/${SUBJECT_NAME}_corr.bvec
+    # Copy bval file
+    cp $NIFTI_FOLDER/${bFile%.*}.bval ${NIFTI_FOLDER%/*/*/}/template
+    mv ${NIFTI_FOLDER%/*/*/}/template/${bFile%.*}.bval ${NIFTI_FOLDER%/*/*/}/template/${SUBJECT_NAME}.bval
+    ((STOP++))
+  fi
+done

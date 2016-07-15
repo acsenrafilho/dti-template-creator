@@ -26,7 +26,9 @@ for (( subj = 1; subj <= $NUM_SUBJ; subj++ )); do
       # echo "    --> Using fast brain extraction procedure"
       bet $TEMP_FOLDER/dti_subject${subj}.nii.gz $TEMP_FOLDER/subject${subj}_brain -m -f $BET_THR
     fi
-      dtifit --data=$TEMP_FOLDER/dti_subject${subj}.nii.gz --out=$TEMP_FOLDER/subject${subj}_map --mask=$TEMP_FOLDER/subject${subj}_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/gradient.bvec --bvals=$TEMP_FOLDER/bvalues.bval
+    #TODO Testar os arquivos bvec e bval que vem do vector_norm
+      # dtifit --data=$TEMP_FOLDER/dti_subject${subj}.nii.gz --out=$TEMP_FOLDER/subject${subj}_map --mask=$TEMP_FOLDER/subject${subj}_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/gradient.bvec --bvals=$TEMP_FOLDER/bvalues.bval
+      dtifit --data=$TEMP_FOLDER/dti_subject${subj}.nii.gz --out=$TEMP_FOLDER/subject${subj}_map --mask=$TEMP_FOLDER/subject${subj}_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/subject${subj}_corr.bvec --bvals=$TEMP_FOLDER/subject${subj}.bval
       echo "$TEMP_FOLDER/subject${subj}_map_FA.nii.gz" >> $TEMP_FOLDER/tmp_FA_map_list.txt
       echo "$TEMP_FOLDER/subject${subj}_map_MD.nii.gz" >> $TEMP_FOLDER/tmp_MD_map_list.txt
       echo "$TEMP_FOLDER/subject${subj}_map_L1.nii.gz" >> $TEMP_FOLDER/tmp_L1_map_list.txt
@@ -109,7 +111,7 @@ else
   # echo "    --> Using fast brain extraction procedure"
   bet $TEMP_FOLDER/dti_template.nii.gz $TEMP_FOLDER/dti_mean_brain -m -f $BET_THR
 fi
-dtifit --data=$TEMP_FOLDER/dti_template.nii.gz --out=$TEMP_FOLDER/dti_${NUM_SUBJ} --mask=$TEMP_FOLDER/dti_mean_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/gradient.bvec --bvals=$TEMP_FOLDER/bvalues.bval
+dtifit --data=$TEMP_FOLDER/dti_template.nii.gz --out=$TEMP_FOLDER/dti_${NUM_SUBJ} --mask=$TEMP_FOLDER/dti_mean_brain_mask.nii.gz --bvecs=$TEMP_FOLDER/subject1_corr.bvec --bvals=$TEMP_FOLDER/subject1.bval
 
 # Loading the JHU template adequate to the DTI space
 if [[ "$MNI_CHOSEN" == "MNI152lin_2mm" ]]; then

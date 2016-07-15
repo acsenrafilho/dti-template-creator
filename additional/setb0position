@@ -67,14 +67,22 @@ done
 echo "  --> .bval reformat done..."
 
 #Edit gradient text file
+# echo "" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+# for (( i = 1; i <= `fslnvols $DTI_NII`; i++ )); do
+#   if [[ $i -eq $B0_POSITION ]]; then
+#     echo "0 0 0" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+#   elif [[ $i -eq $b0_index ]]; then
+#       sed "${B0_POSITION}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+#   else
+#       sed "${i}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+#   fi
+# done
 echo "" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
 for (( i = 1; i <= `fslnvols $DTI_NII`; i++ )); do
   if [[ $i -eq $B0_POSITION ]]; then
     echo "0 0 0" >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
-  elif [[ $i -eq $b0_index ]]; then
-      sed "${B0_POSITION}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
   else
-      sed "${i}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
+    sed "${i}q;d" $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}.bvec >> $NIFTI_DATA_PATH/${NIFTI_DATA_BASENAME%.*.*}_B0pos${B0_POSITION}.bvec
   fi
 done
 echo "  --> .bvec reformat done..."
