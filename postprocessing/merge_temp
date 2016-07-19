@@ -52,7 +52,7 @@ fslmerge -t $TEMP_FOLDER/L3map_prob.nii.gz `cat $TEMP_FOLDER/tmp_L3_map_list.txt
 fslmerge -t $TEMP_FOLDER/MOmap_prob.nii.gz `cat $TEMP_FOLDER/tmp_MO_map_list.txt`
 fslmerge -t $TEMP_FOLDER/S0map_prob.nii.gz `cat $TEMP_FOLDER/tmp_S0_map_list.txt`
 
-if [[ REG_ADJUSTMENT == "Y" ]]; then
+if [[ $REG_ADJUSTMENT == "Y" ]]; then
   # Registration adjustment
   echo "    ==> Making the maps adjustment to fit the ICBM template"
   source postprocessing/maps_adjustment $TEMP_FOLDER
