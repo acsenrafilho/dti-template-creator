@@ -1,0 +1,119 @@
+#!/bin/bash
+
+usage(){
+  echo "This script register a list of DWI images in the ICBM-81-DTI template."
+  echo "Usage: $(basename $0) <Data main folder path>"
+  echo ""
+  echo  "Data main folder path = The path where is a structured folder with all the subjects for the template creation. Please, set the folder as:"
+  echo "Data main folder path"
+  echo "  -> subject 1 folder"
+  echo "    -> DTI DICOM folder 1 (all the DICOM images that compose one single DTI acquisition)"
+  echo "    -> DTI DICOM folder 2"
+  echo "    -> ..."
+  echo "    -> DTI DICOM folder N"
+  echo "  -> subject 2 folder"
+  echo "    -> DTI DICOM folder 1"
+  echo "    -> DTI DICOM folder 2"
+  echo "    -> ..."
+  echo "    -> DTI DICOM folder N"
+  echo "  -> subject 2 folder"
+  echo "    -> DTI DICOM folder 1"
+  echo "    -> DTI DICOM folder 2"
+  echo "    -> ..."
+  echo "    -> DTI DICOM folder N"
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit
+fi
+
+#Checking if the input folder exist
+if [[ ! -d $1 ]]; then
+  echo "ERROR: The input folder path does not exist!"
+  exit
+fi
+
+# Cheking the programs that these scripts depends
+source config/dependecy_check
+
+#Selecting and listing the folders passed to build the brain template.
+source config/folder_list $1
+
+#Turn the folders name in anonymous style
+source config/anonym_subjects $1
+
+# Saving configuration file in log folder
+cat config/config_var.conf > $1/log/configuration_setup.log
+
+NUM_SUBJ=0
+for subj in `ls $1 | grep "subj*"`; do
+  echo "***********************************************************************"
+  echo "*********** DTI registration from $subj initiated ************"
+  echo "***********************************************************************"
+  echo ""
+  echo "*** Initial process to create a brain template ***"
+  echo ""
+
+  # Apply dcm2nii to create the nii files from the DICOM FOLDERS.
+  # If you data is already in Nifti format, change the config_var.conf IS_NIFTI variable.
+  # Starting to select each subject to do all the process.
+  IS_NIFTI=`cat config/config_var.conf | grep IS_NIFTI= | cut -c10-11`
+  source config/dcm2nii $1 $subj $IS_NIFTI
+
+  # nii folder has all the images to process
+  NII_FOLDER=$1/$subj/nii
+
+  # Split the pre processing procedures to each acquisition per time. Less consumption of time per volume.
+  NUM_ACQ=0
+  for acq in `ls $NII_FOLDER | grep .nii.gz`; do
+    echo "Step 2: Pre processing DWIs volumes: Brain extraction and eddy correction - Folder: `echo ${acq}`"
+    # Show the parameters choosen: registration (flirt -> DOF (affine, 6 dof, 3 dof), fnirt (warpsize, fhwmin, fwhmref, subsamp, ))
+    # Read conf file with the variables values.
+    echo "  --> Creating brain mask..."
+    BET_THR=`cat config/config_var.conf | grep BET_THR= | cut -c9-12`
+    NECK_RM=`cat config/config_var.conf | grep NECK_RM= | cut -c9-10`
+    source preprocessing/brain_extraction $NII_FOLDER $acq $BET_THR $NECK_RM
+
+    echo "  --> Eddy current correction procedure..."
+    HIGH_PERF=`cat config/config_var.conf | grep HIGH_PERF= | cut -c11-12`
+    source preprocessing/eddy_correction  $NII_FOLDER $acq $HIGH_PERF
+    ((NUM_ACQ++))
+  done
+
+  echo "Step 3: Registration procedure:"
+  if [[ $NUM_ACQ -eq 1 ]]; then
+    mv $NII_FOLDER/*_eddy.nii.gz $NII_FOLDER/dti_ec_corr_mean.nii.gz
+  else
+    echo "  --> Intrasubject registration"
+    DOF=`cat config/config_var.conf | grep DOF | cut -c5-6`
+    INTERP=`cat config/config_var.conf | grep INTERP | cut -c8-28`
+    source preprocessing/reg_intrasubj $NII_FOLDER $DOF $INTERP
+  fi
+
+    echo "  --> Spatial normalization - Registration with MNI template"
+    MNI=`cat config/config_var.conf | grep MNI= | cut -c5-20`
+    BET_THR=`cat config/config_var.conf | grep BET_THR= | cut -c9-12`
+    WARP=`cat config/config_var.conf | grep WARP= | cut -c6-12`
+    INFWHM=`cat config/config_var.conf | grep INFWHM= | cut -c8-11`
+    REFFWHM=`cat config/config_var.conf | grep REFFWHM= | cut -c9-12`
+    SUBSAMP=`cat config/config_var.conf | grep SUBSAMP= | cut -c9-17`
+    INTERP=`cat config/config_var.conf | grep INTERP | cut -c8-28`
+    source preprocessing/reg_standard $NII_FOLDER $MNI $BET_THR $WARP $INFWHM $REFFWHM $SUBSAMP $INTERP
+
+    echo "***********************************************************************"
+    echo "*** DTI registration from $subj terminated with success.***"
+    echo "***********************************************************************"
+    echo ""
+    echo ""
+
+    ((NUM_SUBJ++))
+done
+    
+    echo "***********************************************************************"
+    echo "***********************************************************************"
+    echo "!!!!!!!!!!!!!!!!!!!! DWI Registration completed !!!!!!!!!!!!!!!!!!!!!!!"
+    echo "***********************************************************************"
+    echo "***********************************************************************"
+    echo ""
+    echo ""
