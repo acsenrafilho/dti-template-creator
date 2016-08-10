@@ -1,0 +1,94 @@
+#!/bin/bash
+#!/bin/bash
+
+usage(){
+  echo "This script register a DTI quantitative map (FA, MD, RA, VR or Perpendicular Diffusivity) to the correspondent brain template. The USP-ICBM-131-DTI templates are used here."
+  echo "Usage: $(basename $0) <DTI map native space> <Type of map [FA,MD,RA,VR,PerpDiff]> <Resolution (mm) [2,1]>"
+  echo ""
+  echo  "DTI map native space = The DTI map which you want to fit in the ICBM template. The file should be in Nifti (.nii or .nii.gz)."
+  echo  "Type of map          = Type of map which you put in the first argument. The maps available here are the Fractional Anisotropy (FA), Mean Diffusivity (MD or ADC), Relative Anisotropy (RA), Volume Ratio (VR) and Perpendicular Diffusivity (PerpDiff)."
+  echo  "Resolution (mm)      = Define the output resolution that you want in your DTI registered map."
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit
+fi
+
+# Cheking the programs that these scripts depends
+source config/dependecy_check
+
+DTI_NATIVE=$1
+TYPE_TEMPLATE=$2
+RESOLUTION=$3
+
+NATIVE_NAME=$(basename $DTI_NATIVE)
+if [[ ! "`echo ${NATIVE_NAME%.*}` | grep .nii" == "" ]]; then
+  NATIVE_NAME=`echo ${NATIVE_NAME%.*.*}`
+else
+  NATIVE_NAME=`echo ${NATIVE_NAME%.*}`
+fi
+NATIVE_PATH=$(dirname $DTI_NATIVE)
+
+  echo "***********************************************************************"
+  echo "$(basename $DTI_NATIVE) registration to ICBM-$TYPE_TEMPLATE template initiated"
+  echo ""
+
+    WARP=`cat config/config_var.conf | grep WARP= | cut -c6-12`
+    INFWHM=`cat config/config_var.conf | grep INFWHM= | cut -c8-11`
+    REFFWHM=`cat config/config_var.conf | grep REFFWHM= | cut -c9-12`
+    SUBSAMP=`cat config/config_var.conf | grep SUBSAMP= | cut -c9-17`
+    INTERP=`cat config/config_var.conf | grep INTERP | cut -c8-28`
+
+      DTI_TEMPLATE=""
+      if [[ $TYPE_TEMPLATE == "FA" ]]; then
+        if [[ $RESOLUTION == "2" ]]; then
+          DTI_TEMPLATE="dti_templates/USP-ICBM-FA-131-2mm.nii.gz"
+        else
+          DTI_TEMPLATE="dti_templates/USP-ICBM-FA-131-1mm.nii.gz"
+        fi
+      elif [[ $TYPE_TEMPLATE == "MD" ]]; then
+        if [[ $RESOLUTION == "2" ]]; then
+          DTI_TEMPLATE="dti_templates/USP-ICBM-MD-131-2mm.nii.gz"
+        else
+          DTI_TEMPLATE="dti_templates/USP-ICBM-MD-131-1mm.nii.gz"
+        fi
+      elif [[ $TYPE_TEMPLATE == "RA" ]]; then
+        if [[ $RESOLUTION == "2" ]]; then
+          DTI_TEMPLATE="dti_templates/USP-ICBM-RA-131-2mm.nii.gz"
+        else
+          DTI_TEMPLATE="dti_templates/USP-ICBM-RA-131-1mm.nii.gz"
+        fi
+      elif [[ $TYPE_TEMPLATE == "VR" ]]; then
+        if [[ $RESOLUTION == "2" ]]; then
+          DTI_TEMPLATE="dti_templates/USP-ICBM-VR-131-2mm.nii.gz"
+        else
+          DTI_TEMPLATE="dti_templates/USP-ICBM-VR-131-1mm.nii.gz"
+        fi
+      elif [[ $TYPE_TEMPLATE == "PerpDiff" ]]; then
+        if [[ $RESOLUTION == "2" ]]; then
+          DTI_TEMPLATE="dti_templates/USP-ICBM-PerpDiff-131-2mm.nii.gz"
+        else
+          DTI_TEMPLATE="dti_templates/USP-ICBM-PerpDiff-131-1mm.nii.gz"
+        fi
+      fi
+
+      echo "--> Step 1: Linear approximation..."
+      flirt -in $DTI_NATIVE -ref $DTI_TEMPLATE -out ${NATIVE_PATH}/${NATIVE_NAME}_tmp_flirt -omat ${NATIVE_PATH}/native2temp.mat -interp $INTERP
+
+      # Step 2: Non linear registration
+      echo "--> Step 2: Non linear approximation..."
+      IN=${NATIVE_PATH}/${NATIVE_NAME}_tmp_flirt
+      REF=$DTI_TEMPLATE
+      OUT=${NATIVE_PATH}/${NATIVE_NAME}_tmp_fnirt
+      FIELD=${NATIVE_PATH}/${NATIVE_NAME}_tmp_field
+      fnirt --ref=$REF --in=$IN --warpres=$WARP --infwhm=$INFWHM --reffwhm=$REFFWHM --subsamp=$SUBSAMP
+
+      echo "--> Applying transformations in the whole volume"
+      applywarp --ref=$REF --in=${DTI_NATIVE} --premat=${NATIVE_PATH}/native2temp.mat --warp=${NATIVE_PATH}/${NATIVE_NAME}_tmp_flirt_warpcoef --out=${NATIVE_PATH}/${NATIVE_NAME}-ICBM.nii.gz
+
+      #Removing trash files
+      rm `echo ${NATIVE_PATH}/${NATIVE_NAME}_tmp_flirt*` ${NATIVE_PATH}/native2temp.mat `echo ${NATIVE_PATH}/${NATIVE_NAME}_tmp_flirt_warpcoef*`
+    echo ""
+    echo "$(basename $DTI_NATIVE) registration to ICBM-$TYPE_TEMPLATE template completed with success"
+    echo "*****************************************************************************************************************"
