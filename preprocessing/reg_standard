@@ -51,7 +51,7 @@ fi
   REF=$NII_FOLDER/tmp_MNItemplate.nii.gz
   OUT=$NII_FOLDER/tmp_b0_brain_MNI_nlin.nii.gz
   FIELD=$NII_FOLDER/tmp_b0_spline_field
-  fnirt --ref=$REF --in=$IN --warpres=8,8,8 --infwhm=0 --reffwhm=0 --subsamp=2,1,1,1
+  fnirt --ref=$REF --in=$IN --warpres=$WARP --infwhm=$INFWHM --reffwhm=$REFFWHM --subsamp=$SUBSAMP
 
   # Apply brain mask in the DTI volume
   fslmaths $NII_FOLDER/$MEAN_DTI -mas $NII_FOLDER/tmp_b0_brain_mask.nii.gz $NII_FOLDER/${MEAN_DTI%.*.*}_brain.nii.gz
