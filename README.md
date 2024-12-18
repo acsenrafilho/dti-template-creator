@@ -29,7 +29,7 @@ The `templateCreator` repository provides a comprehensive solution for creating 
 
 - Unix-based operating system (Linux, macOS)
 - Bash shell
-- Required software: [FSL]([url](https://fsl.fmrib.ox.ac.uk/fsl/docs/)
+- Required software: [FSL](https://fsl.fmrib.ox.ac.uk/fsl/docs/)
 
 ## Installation
 
