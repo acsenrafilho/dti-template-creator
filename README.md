@@ -1,10 +1,10 @@
-# templateCreator
+# dti-template-creator
 
-`templateCreator` is a set of shell scripts pipelines designed to create DTI (Diffusion Tensor Imaging) templates. This repository contains all the necessary scripts and instructions to generate high-quality DTI templates.
+`dti-template-creator` is a set of shell scripts pipelines designed to create DTI (Diffusion Tensor Imaging) templates. This repository contains all the necessary scripts and instructions to generate high-quality DTI templates.
 
 ## Table of Contents
 
-- [TemplateCreator](#templatecreator)
+- [dti-template-creator](#dti-template-creator)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Features](#features)
@@ -17,7 +17,7 @@
 
 ## Introduction
 
-The `templateCreator` repository provides a comprehensive solution for creating DTI templates using shell scripts. These templates are essential for various neuroimaging analyses and research.
+The `dti-template-creator` repository provides a comprehensive solution for creating DTI templates using shell scripts. These templates are essential for various neuroimaging analyses and research.
 
 ## Features
 
@@ -35,11 +35,11 @@ The `templateCreator` repository provides a comprehensive solution for creating 
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/acsenrafilho/templateCreator.git
+   git clone https://github.com/acsenrafilho/dti-template-creator.git
    ```
 2. Navigate to the cloned directory:
    ```sh
-   cd templateCreator
+   cd dti-template-creator
    ```
 3. Ensure all required software and dependencies are installed (anyway, if there is an dependency missing, the script will notify you for further instructions).
 
