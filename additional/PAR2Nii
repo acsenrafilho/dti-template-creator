@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This is an copy of PARconv_v1.12.sh script that makes the conversiont of PAR/REC files in NIFTI.
-# I made minors editing in order to give a more adjustable output to fit in the rest of templateCreator toolkit.
+# I made minors editing in order to give a more adjustable output to fit in the rest of dti-template-creator toolkit.
 # More details: https://www.staff.ncl.ac.uk/m.j.firbank/nifti_convert.html
 
 # converts PARREC to nii.
