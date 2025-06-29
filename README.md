@@ -1,3 +1,7 @@
+<img src="https://raw.githubusercontent.com/acsenrafilho/dti-template-creator/refs/heads/main/docs/assets/repo-slogan.png" width=700>
+
+
+
 # dti-template-creator
 
 `dti-template-creator` is a set of shell scripts pipelines designed to create DTI (Diffusion Tensor Imaging) templates. This repository contains all the necessary scripts and instructions to generate high-quality DTI templates.
