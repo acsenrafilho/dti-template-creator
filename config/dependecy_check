@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to check the dependency programs needed to use the templateCreator
+# Script to check the dependency programs needed to use the dti-template-creator
 
 DCM2NII=0
 FSLVERSION=0
@@ -20,10 +20,10 @@ fi
 
 #Show list of dependecy
 if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 || $FSLDATA -eq 1 ]]; then
-  echo "templateCreator need some programs to work properly. Please provide a previous installation of the programs listed below:"
+  echo "dti-template-creator need some programs to work properly. Please provide a previous installation of the programs listed below:"
   if [[ $DCM2NII -eq 1 ]]; then
     echo "  -> dcm2nii program is missing!"
-    echo "Please, previously install dcm2nii in order to use templateCreator"
+    echo "Please, previously install dcm2nii in order to use dti-template-creator"
     echo ""
     echo "  More information in the website: http://www.mccauslandcenter.sc.edu/mricro/mricron/dcm2nii.html"
     echo ""
@@ -42,6 +42,6 @@ if [[ $DCM2NII -eq 1 || $FSLVERSION -eq 1 || $FSLEDDY -eq 1 || $FSLDATA -eq 1 ]]
     echo "  More information in the website: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/"
     echo ""
   fi
-  echo "templateCreator terminated. (I'll be back!)"
+  echo "dti-template-creator terminated. (I'll be back!)"
   exit
 fi
