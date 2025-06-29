@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/acsenrafilho/dti-template-creator/refs/heads/main/docs/assets/repo-slogan.png" width=700>
+<img src="https://raw.githubusercontent.com/acsenrafilho/dti-template-creator/refs/heads/master/docs/assets/repo-slogan.png" width=700>
 
 
 
